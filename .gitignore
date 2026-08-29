@@ -1,0 +1,34 @@
+# Entorno virtual
+venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Configuración local y secretos
+.env
+.env.local
+
+# Base de datos local y archivos subidos
+instance/
+*.db
+*.sqlite3
+
+# Comprobantes: NUNCA se versionan. Contienen datos personales y bancarios
+# de los aportantes (RNF-02).
+app/static/uploads/
+comprobantes/
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini

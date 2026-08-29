@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Pago grupal recibido — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-lg-9">
+
+<div class="card">
+    <div class="card-body p-4 p-md-5">
+
+        <div class="text-center mb-4">
+            <div class="display-4 mb-2" style="color: var(--sc-ok);">
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            </div>
+            <h1 class="h3 mb-2">Recibimos el pago grupal</h1>
+            <p class="text-muted mb-0">
+                Una transferencia de {{ pago.importe_total|pesos }} repartida entre
+                {{ pago.detalles.count() }} persona{{ 's' if pago.detalles.count() != 1 }}.
+            </p>
+        </div>
+
+        <div class="sc-aviso sc-aviso-ok text-center">
+            <p class="sc-cifra-rotulo mb-2">Código de seguimiento del pago grupal</p>
+            <p class="mb-2">{{ c.codigo_seguimiento(pago.codigo_seguimiento, grande=true) }}</p>
+            <p class="mb-0 sc-ayuda">
+                Guardalo y compartilo con el resto del grupo: con este código
+                cualquiera de ustedes puede consultar el estado.
+            </p>
+        </div>
+
+        <div class="sc-seccion">
+            <h3>Cómo se repartió</h3>
+
+            <div class="table-responsive">
+                <table class="table sc-tabla">
+                    <caption class="sc-solo-lectores">
+                        Reparto del importe entre las personas incluidas en el pago
+                    </caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Persona</th>
+                            <th scope="col">DNI</th>
+                            <th scope="col" class="text-end">Se le imputó</th>
+                            <th scope="col">Libreta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for detalle in pago.detalles %}
+                        <tr>
+                            <td>{{ detalle.aportante.nombre_completo() }}</td>
+                            <td>{{ detalle.aportante.dni }}</td>
+                            <td class="text-end sc-importe">{{ detalle.monto_asignado|pesos }}</td>
+                            <td>
+                                {% if detalle.solicita_libreta %}
+                                    <span class="sc-etiqueta">La necesita</span>
+                                {% else %}
+                                    <span class="text-muted" aria-label="No">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th scope="row" colspan="2" class="text-end">Total transferido</th>
+                            <td class="text-end sc-importe">{{ pago.importe_total|pesos }}</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <div class="sc-aviso mt-4">
+            <p class="mb-0">
+                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                Todavía figura <strong>en revisión</strong>. Ninguna de las cuotas se acredita hasta
+                que la Cooperadora confirme la transferencia contra el extracto del banco.
+            </p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-4 sc-no-imprimir">
+            <a href="{{ url_for('aportantes.seguimiento') }}" class="btn btn-primary">
+                <i class="bi bi-search me-2" aria-hidden="true"></i>Consultar estado
+            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer me-2" aria-hidden="true"></i>Imprimir o guardar
+            </button>
+            <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary">Volver al inicio</a>
+        </div>
+
+    </div>
+</div>
+
+</div>
+</div>
+
+{% endblock %}

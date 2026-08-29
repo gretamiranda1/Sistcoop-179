@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Libretas — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Entrega de libretas</h1>
+    <p>Buscá al estudiante por DNI y dejá registro de la entrega.</p>
+</div>
+
+{#
+  La cuota de Cooperadora es voluntaria: el sistema no puede condicionar la
+  entrega de la libreta ni de ninguna otra documentación académica por falta
+  de pago (Propuesta, sección 6; RF-13). El saldo pendiente se muestra sólo
+  como información para quien atiende el mostrador.
+#}
+<div class="sc-aviso sc-aviso-atencion mb-4">
+    <p class="mb-0">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        La entrega <strong>nunca</strong> depende de que la cuota esté paga. El saldo que
+        aparece abajo es informativo.
+    </p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label for="dni" class="form-label sc-requerido">DNI del estudiante</label>
+                <input type="text" class="form-control" id="dni" name="dni"
+                       value="{{ dni or '' }}" placeholder="33123456" inputmode="numeric" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2" aria-hidden="true"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if aportante %}
+<div class="card">
+    <div class="card-header">
+        <h2>{{ aportante.nombre_completo() }}</h2>
+        <p class="sc-subtitulo">
+            DNI {{ aportante.dni }}
+            {% if aportante.carrera %} · {{ aportante.carrera.nombre }}{% endif %}
+            {% if aportante.anio %} · {{ aportante.anio }} año{% endif %}
+        </p>
+    </div>
+    <div class="card-body">
+
+        {% if saldo %}
+        <div class="row g-4 mb-4">
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Cuota {{ saldo.ejercicio.anio }}</p>
+                <p class="sc-cifra mb-0">{{ saldo.cuota_total|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Verificado</p>
+                <p class="sc-cifra mb-0" style="color: var(--sc-ok)">{{ saldo.pagado|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">En revisión</p>
+                <p class="sc-cifra mb-0" style="color: var(--sc-espera)">{{ saldo.en_revision|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Pendiente</p>
+                <p class="sc-cifra mb-0">{{ saldo.saldo_pendiente|pesos }}</p>
+            </div>
+        </div>
+
+        {% if saldo.libreta_entregada %}
+        <div class="sc-aviso sc-aviso-ok">
+            <p class="mb-0">
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                Libreta entregada
+                {% if saldo.fecha_libreta %}el {{ saldo.fecha_libreta.strftime('%d/%m/%Y a las %H:%M') }}{% endif %}.
+            </p>
+        </div>
+        {% else %}
+        <form method="POST"
+              action="{{ url_for('administracion.entregar_libreta', saldo_id=saldo.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-journal-check me-2" aria-hidden="true"></i>Registrar la entrega
+            </button>
+        </form>
+        {% endif %}
+        {% endif %}
+
+        {% if pagos_libreta %}
+        <div class="sc-seccion">
+            <h3>Pidió la libreta al cargar estos aportes</h3>
+            <div class="table-responsive">
+                <table class="table sc-tabla">
+                    <thead>
+                        <tr>
+                            <th scope="col">Código</th>
+                            <th scope="col">Concepto</th>
+                            <th scope="col">Fecha</th>
+                            <th scope="col" class="text-end">Importe</th>
+                            <th scope="col">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pago in pagos_libreta %}
+                        <tr>
+                            <td><span class="sc-codigo">{{ pago.codigo_seguimiento }}</span></td>
+                            <td>{{ pago.tipo_legible }}</td>
+                            <td>{{ pago.fecha.strftime('%d/%m/%Y') }}</td>
+                            <td class="text-end sc-importe">{{ pago.importe|pesos }}</td>
+                            <td>{{ c.estado_pago(pago.estado) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

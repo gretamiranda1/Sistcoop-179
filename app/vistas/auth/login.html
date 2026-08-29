@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Acceso — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-md-6 col-lg-5">
+
+<div class="card">
+    <div class="card-body p-4 p-md-5">
+
+        <div class="text-center mb-4">
+            <div class="display-6 mb-2" style="color: var(--sc-azul);">
+                <i class="bi bi-shield-lock" aria-hidden="true"></i>
+            </div>
+            <h1 class="h4 mb-1">Acceso administrativo</h1>
+            <p class="sc-ayuda mb-0">Sólo para la Cooperadora, Preceptoría y Tesorería.</p>
+        </div>
+
+        <form method="POST" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label for="username" class="form-label sc-requerido">Usuario</label>
+                <input type="text" class="form-control" id="username" name="username"
+                       autocomplete="username" required autofocus>
+            </div>
+
+            <div class="mb-4">
+                <label for="password" class="form-label sc-requerido">Contraseña</label>
+                <input type="password" class="form-control" id="password" name="password"
+                       autocomplete="current-password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i>Ingresar
+            </button>
+        </form>
+
+        <hr class="my-4">
+
+        <div class="text-center">
+            <p class="sc-ayuda mb-2">¿Venís a cargar el comprobante de tu cuota?</p>
+            <a href="{{ url_for('aportantes.pagar_cuota') }}" class="btn btn-outline-primary btn-sm">
+                Ir al portal público, sin usuario
+            </a>
+        </div>
+
+    </div>
+</div>
+
+</div>
+</div>
+
+{% endblock %}

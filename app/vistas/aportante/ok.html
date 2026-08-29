@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Comprobante recibido — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="row justify-content-center">
+<div class="col-lg-8">
+
+<div class="card">
+    <div class="card-body p-4 p-md-5">
+
+        <div class="text-center mb-4">
+            <div class="display-4 mb-2" style="color: var(--sc-ok);">
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            </div>
+            <h1 class="h3 mb-2">Recibimos tu comprobante</h1>
+            <p class="text-muted mb-0">
+                Quedó registrado. Ahora la Cooperadora lo va a comparar con el movimiento del banco.
+            </p>
+        </div>
+
+        {# El código de seguimiento es lo más importante de esta pantalla:
+           es lo único que la persona necesita guardar. #}
+        <div class="sc-aviso sc-aviso-ok text-center">
+            <p class="sc-cifra-rotulo mb-2">Tu código de seguimiento</p>
+            <p class="mb-2">{{ c.codigo_seguimiento(pago.codigo_seguimiento, grande=true) }}</p>
+            <p class="mb-0 sc-ayuda">
+                Anotalo o sacale una captura. Con este código consultás el estado sin
+                tener que dar tu DNI ni ningún otro dato.
+            </p>
+        </div>
+
+        <dl class="row g-0 mt-4 mb-0">
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo">Concepto</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0">{{ pago.tipo_legible }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Importe</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top sc-importe">{{ pago.importe|pesos }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Fecha de la transferencia</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ pago.fecha.strftime('%d/%m/%Y') }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Cargado el</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ pago.created_at.strftime('%d/%m/%Y a las %H:%M') }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Estado</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ c.estado_pago(pago.estado) }}</dd>
+
+            {% if pago.solicita_libreta %}
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Libreta</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">
+                Avisamos a Preceptoría que la necesitás.
+            </dd>
+            {% endif %}
+        </dl>
+
+        {% if saldo %}
+        <div class="sc-seccion">
+            <h3>Cómo queda tu cuota {{ saldo.ejercicio.anio }}</h3>
+
+            <div class="sc-medidor">
+                <div class="sc-medidor-barra" role="img"
+                     aria-label="Verificado {{ saldo.porcentaje_pagado }} por ciento, en revisión {{ saldo.porcentaje_en_revision }} por ciento">
+                    <div class="sc-medidor-verificado" style="width: {{ saldo.porcentaje_pagado }}%"></div>
+                    <div class="sc-medidor-revision" style="width: {{ saldo.porcentaje_en_revision }}%"></div>
+                </div>
+                <div class="sc-medidor-leyenda">
+                    <span><i style="background: var(--sc-ok)"></i> Verificado: <strong>{{ saldo.pagado|pesos }}</strong></span>
+                    <span><i style="background: var(--sc-espera)"></i> En revisión: <strong>{{ saldo.en_revision|pesos }}</strong></span>
+                    <span><i style="background: var(--sc-neutro-fondo)"></i> Falta: <strong>{{ saldo.saldo_pendiente|pesos }}</strong></span>
+                </div>
+            </div>
+
+            <p class="sc-ayuda mt-3 mb-0">
+                Lo que acabás de cargar figura como <strong>en revisión</strong> hasta que la
+                Cooperadora lo confirme contra el extracto del banco. Recién ahí pasa a verificado
+                y baja lo que te falta.
+            </p>
+        </div>
+        {% endif %}
+
+        <div class="sc-seccion">
+            <h3>Qué sigue</h3>
+            <ol class="mb-0 ps-3">
+                <li class="mb-2">
+                    La Cooperadora busca tu transferencia en el extracto del Banco Provincia.
+                </li>
+                <li class="mb-2">
+                    Si coincide, marca el pago como verificado y emite el recibo correspondiente.
+                </li>
+                <li>
+                    El recibo físico en papel se sigue retirando por Preceptoría: por normativa de la
+                    Dirección de Cooperación Escolar, el sistema lo complementa pero no lo reemplaza.
+                </li>
+            </ol>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2 mt-4 sc-no-imprimir">
+            <a href="{{ url_for('aportantes.seguimiento') }}" class="btn btn-primary">
+                <i class="bi bi-search me-2" aria-hidden="true"></i>Consultar estado
+            </a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                <i class="bi bi-printer me-2" aria-hidden="true"></i>Imprimir o guardar
+            </button>
+            <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary">Volver al inicio</a>
+        </div>
+
+    </div>
+</div>
+
+</div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Otro aporte — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Hacer otro aporte</h1>
+    <p>
+        Para todo lo que no es la cuota de socio: donaciones, sponsors de eventos
+        y aportes destinados al fondo propio de una carrera.
+    </p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+
+        {% set tab = tab_activa|default('capital') %}
+
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab != 'carrera' %}active{% endif %}" id="tab-general"
+                        data-bs-toggle="tab" data-bs-target="#panel-general" type="button"
+                        role="tab" aria-controls="panel-general"
+                        aria-selected="{{ 'false' if tab == 'carrera' else 'true' }}">
+                    <i class="bi bi-bank" aria-hidden="true"></i> Aporte a la Cooperadora
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab == 'carrera' %}active{% endif %}" id="tab-carrera"
+                        data-bs-toggle="tab" data-bs-target="#panel-carrera" type="button"
+                        role="tab" aria-controls="panel-carrera"
+                        aria-selected="{{ 'true' if tab == 'carrera' else 'false' }}">
+                    <i class="bi bi-mortarboard" aria-hidden="true"></i> Aporte a una carrera
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+
+        {# ============================================================== #}
+        {# Aporte al fondo general                                        #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if tab != 'carrera' %}show active{% endif %}"
+             id="panel-general" role="tabpanel" aria-labelledby="tab-general">
+
+            <div class="sc-aviso mb-4">
+                <p class="mb-0">
+                    Este aporte entra al <strong>fondo general de la Cooperadora</strong>,
+                    que financia mantenimiento, insumos y actividades para todo el instituto.
+                </p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="form-general" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="tipo_aporte" value="general">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="nombre-general" class="form-label sc-requerido">Nombre o razón social</label>
+                        <input type="text" class="form-control" id="nombre-general" name="nombre" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="apellido-general" class="form-label">
+                            Apellido <span class="sc-opcional">(si es una persona)</span>
+                        </label>
+                        <input type="text" class="form-control" id="apellido-general" name="apellido">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="dni-general" class="form-label sc-requerido">DNI de quien transfiere</label>
+                        <input type="text" class="form-control" id="dni-general" name="dni"
+                               placeholder="33123456" inputmode="numeric"
+                               aria-describedby="dni-general-estado" required>
+                        <span class="sc-campo-estado" id="dni-general-estado" aria-live="polite"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="cuit-general" class="form-label">
+                            CUIT <span class="sc-opcional">(si aporta una empresa)</span>
+                        </label>
+                        <input type="text" class="form-control" id="cuit-general" name="cuit"
+                               placeholder="30-12345678-9" aria-describedby="cuit-general-estado">
+                        <span class="sc-campo-estado" id="cuit-general-estado" aria-live="polite"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="importe-general" class="form-label sc-requerido">Importe transferido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe-general" name="importe"
+                                   step="0.01" min="0.01" inputmode="decimal" required>
+                        </div>
+                    </div>
+
+                    {{ c.campo_fecha('fecha-general') }}
+                    {{ c.campo_codigo_transaccion('codigo-general', 'transaccion-general-estado') }}
+
+                    {{ c.zona_comprobante('zona-general', 'comprobante-general',
+                                          'comprobante-general-estado', 'comprobante-general-vista') }}
+
+                    <div class="col-12">
+                        <label for="observaciones-general" class="form-label">
+                            Aclaración <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        <textarea class="form-control" id="observaciones-general" name="observaciones"
+                                  rows="2" maxlength="500"
+                                  placeholder="Por ejemplo: sponsor de la muestra anual"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-general">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar aporte
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        {# ============================================================== #}
+        {# Aporte al fondo de una carrera                                 #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if tab == 'carrera' %}show active{% endif %}"
+             id="panel-carrera" role="tabpanel" aria-labelledby="tab-carrera">
+
+            <div class="sc-aviso sc-aviso-atencion mb-4">
+                <p class="sc-aviso-titulo">
+                    <i class="bi bi-signpost-split" aria-hidden="true"></i> El dinero queda separado
+                </p>
+                <p class="mb-0">
+                    Este aporte entra al <strong>fondo propio de la carrera</strong> que elijas y no
+                    se mezcla con el fondo general. Sirve para viajes, insumos y proyectos de esa carrera.
+                </p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="form-carrera" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="tipo_aporte" value="carrera">
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label for="carrera-destino" class="form-label sc-requerido">Carrera destino</label>
+                        <select class="form-select" id="carrera-destino" name="carrera_id" required>
+                            <option value="">Elegí la carrera que recibe el aporte</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="nombre-carrera" class="form-label sc-requerido">Nombre o razón social</label>
+                        <input type="text" class="form-control" id="nombre-carrera" name="nombre" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="apellido-carrera" class="form-label">
+                            Apellido <span class="sc-opcional">(si es una persona)</span>
+                        </label>
+                        <input type="text" class="form-control" id="apellido-carrera" name="apellido">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="dni-carrera" class="form-label sc-requerido">DNI de quien transfiere</label>
+                        <input type="text" class="form-control" id="dni-carrera" name="dni"
+                               placeholder="33123456" inputmode="numeric"
+                               aria-describedby="dni-carrera-estado" required>
+                        <span class="sc-campo-estado" id="dni-carrera-estado" aria-live="polite"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="cuit-carrera" class="form-label">
+                            CUIT <span class="sc-opcional">(si aporta una empresa)</span>
+                        </label>
+                        <input type="text" class="form-control" id="cuit-carrera" name="cuit"
+                               placeholder="30-12345678-9" aria-describedby="cuit-carrera-estado">
+                        <span class="sc-campo-estado" id="cuit-carrera-estado" aria-live="polite"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="importe-carrera" class="form-label sc-requerido">Importe transferido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe-carrera" name="importe"
+                                   step="0.01" min="0.01" inputmode="decimal" required>
+                        </div>
+                    </div>
+
+                    {{ c.campo_fecha('fecha-carrera') }}
+                    {{ c.campo_codigo_transaccion('codigo-carrera', 'transaccion-carrera-estado') }}
+
+                    {{ c.zona_comprobante('zona-carrera', 'comprobante-carrera',
+                                          'comprobante-carrera-estado', 'comprobante-carrera-vista') }}
+
+                    <div class="col-12">
+                        <label for="observaciones-carrera" class="form-label">
+                            Aclaración <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        <textarea class="form-control" id="observaciones-carrera" name="observaciones"
+                                  rows="2" maxlength="500"
+                                  placeholder="Por ejemplo: aporte para el viaje de fin de cursada"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-carrera">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar aporte
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Solapa "Aporte a la Cooperadora"
+    configurarCarga('zona-general', 'comprobante-general',
+                    'comprobante-general-estado', 'comprobante-general-vista');
+    validarDni('dni-general', 'dni-general-estado');
+    validarCuit('cuit-general', 'cuit-general-estado');
+    validarTransaccion('codigo-general', 'transaccion-general-estado');
+    evitarDobleEnvio('form-general', 'btn-general', 'Enviando aporte…');
+
+    // Solapa "Aporte a una carrera"
+    configurarCarga('zona-carrera', 'comprobante-carrera',
+                    'comprobante-carrera-estado', 'comprobante-carrera-vista');
+    validarDni('dni-carrera', 'dni-carrera-estado');
+    validarCuit('cuit-carrera', 'cuit-carrera-estado');
+    validarTransaccion('codigo-carrera', 'transaccion-carrera-estado');
+    evitarDobleEnvio('form-carrera', 'btn-carrera', 'Enviando aporte…');
+});
+</script>
+{% endblock %}

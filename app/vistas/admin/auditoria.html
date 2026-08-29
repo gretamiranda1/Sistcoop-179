@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Auditoría — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Registro de auditoría</h1>
+    <p>
+        Toda operación queda asentada con usuario, acción, fecha y origen. El registro no se
+        edita ni se borra: es lo que sostiene la trazabilidad exigida a las autoridades (RNF-04).
+    </p>
+</div>
+
+<div class="card">
+    <div class="table-responsive">
+        <table class="table sc-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Fecha y hora</th>
+                    <th scope="col">Usuario</th>
+                    <th scope="col">Acción</th>
+                    <th scope="col">Registro</th>
+                    <th scope="col">Detalle</th>
+                    <th scope="col">Origen</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in registros.items %}
+                <tr>
+                    <td>{{ r.created_at.strftime('%d/%m/%Y %H:%M:%S') }}</td>
+                    <td>{{ r.usuario }}</td>
+                    <td><span class="sc-etiqueta">{{ r.accion }}</span></td>
+                    <td>
+                        {{ r.tabla or '—' }}
+                        {% if r.registro_id %}<span class="sc-ayuda d-block">#{{ r.registro_id }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if r.detalle %}
+                        <span class="sc-ayuda">{{ r.detalle }}</span>
+                        {% else %}—{% endif %}
+                    </td>
+                    <td><span class="sc-ayuda">{{ r.ip or '—' }}</span></td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="sc-vacio">Todavía no hay operaciones registradas.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if registros.pages > 1 %}
+    <div class="card-body border-top d-flex justify-content-between align-items-center">
+        <span class="sc-ayuda">Página {{ registros.page }} de {{ registros.pages }}</span>
+        <div class="d-flex gap-2">
+            {% if registros.has_prev %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.auditoria', pagina=registros.prev_num) }}">Anterior</a>
+            {% endif %}
+            {% if registros.has_next %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.auditoria', pagina=registros.next_num) }}">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

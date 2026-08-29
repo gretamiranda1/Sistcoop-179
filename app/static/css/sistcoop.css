@@ -1,0 +1,584 @@
+/* ==========================================================================
+   SistCoop 179 — estilos del sistema
+   --------------------------------------------------------------------------
+   Antes esto estaba dentro de un <style> en base.html. Lo sacamos a un
+   archivo aparte para que el navegador lo guarde en caché y para poder
+   editarlo sin tocar la plantilla.
+
+   Va arriba de Bootstrap 5 (que se sirve desde static/vendor/). Donde se
+   puede, cambiamos las variables de Bootstrap en vez de pelearle con
+   reglas más específicas.
+   ========================================================================== */
+
+:root {
+    /* --------------------------------------------------------------
+       Identidad de la Cooperadora
+
+       --sc-marca es el azul institucional: es el mismo que usa el sitio
+       de la Cooperadora (asoccooperadora179.com.ar). Va en las superficies
+       grandes —la barra de arriba, el pie y los títulos de página— pero NO
+       en los botones: es tan oscuro que se lee como negro y no deja lugar
+       para el color del hover, que tendría que ser todavía más oscuro.
+
+       --sc-azul es ese mismo azul aclarado, y es el de todo lo que se
+       puede tocar: botones, enlaces y el recuadro del foco. Con blanco
+       encima tiene contraste 9,9:1, bastante más que el 4,5:1 que pide
+       la pauta de accesibilidad.
+       -------------------------------------------------------------- */
+    --sc-marca: #0d1f33;
+    --sc-marca-clara: #16304f;
+    --sc-azul: #1d4470;
+    --sc-azul-osc: #16304f;
+    --sc-azul-claro: #e9eef5;
+
+    /* Neutros */
+    --sc-tinta: #17222e;
+    --sc-tinta-suave: #55636f;
+    --sc-borde: #dfe4ea;
+    --sc-fondo: #f4f6f9;
+    --sc-panel: #ffffff;
+
+    /* Colores de estado. Los elegimos con suficiente contraste sobre su
+       propio fondo para que se lean bien. */
+    --sc-ok: #1f6b45;
+    --sc-ok-fondo: #e7f4ec;
+    --sc-espera: #8a5a00;
+    --sc-espera-fondo: #fdf3e0;
+    --sc-error: #9d2f28;
+    --sc-error-fondo: #fbeceb;
+    --sc-neutro: #4d5a66;
+    --sc-neutro-fondo: #eef1f4;
+
+    --sc-radio: 12px;
+    --sc-radio-chico: 8px;
+    --sc-sombra: 0 1px 2px rgba(23, 34, 46, .06), 0 8px 24px rgba(23, 34, 46, .06);
+    --sc-sombra-alta: 0 4px 12px rgba(23, 34, 46, .10), 0 16px 40px rgba(23, 34, 46, .10);
+
+    /* Bootstrap */
+    --bs-primary: var(--sc-azul);
+    --bs-primary-rgb: 29, 68, 112;
+    --bs-body-color: var(--sc-tinta);
+    --bs-body-bg: var(--sc-fondo);
+    --bs-border-color: var(--sc-borde);
+    --bs-link-color: var(--sc-azul);
+    --bs-link-hover-color: var(--sc-azul-osc);
+    --bs-border-radius: var(--sc-radio-chico);
+}
+
+/* --------------------------------------------------------------------------
+   Base
+   -------------------------------------------------------------------------- */
+
+body {
+    font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--sc-fondo);
+    color: var(--sc-tinta);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 { font-weight: 600; letter-spacing: -.01em; }
+
+a { text-underline-offset: .2em; }
+
+/* El recuadro del foco tiene que verse: es la única forma de saber dónde
+   estás parado si navegás con el teclado. */
+:focus-visible {
+    outline: 3px solid rgba(29, 68, 112, .45);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.sc-solo-lectores {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Enlace para saltear el menú e ir directo al contenido */
+.sc-saltar {
+    position: absolute;
+    left: -999px;
+    top: 0;
+    z-index: 2000;
+    background: var(--sc-azul);
+    color: #fff;
+    padding: .75rem 1.25rem;
+    border-radius: 0 0 var(--sc-radio-chico) 0;
+}
+.sc-saltar:focus { left: 0; color: #fff; }
+
+/* --------------------------------------------------------------------------
+   Navegación
+   -------------------------------------------------------------------------- */
+
+.sc-navbar {
+    background: var(--sc-marca);
+    padding: .65rem 0;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .12);
+}
+
+.sc-navbar .navbar-brand {
+    color: #fff;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    line-height: 1.1;
+}
+.sc-navbar .navbar-brand:hover { color: #fff; }
+
+.sc-marca-texto { display: flex; flex-direction: column; }
+.sc-marca-texto strong { font-size: 1.05rem; }
+.sc-marca-texto span { font-size: .74rem; font-weight: 400; opacity: .78; }
+
+.sc-navbar .nav-link {
+    color: rgba(255, 255, 255, .82);
+    font-size: .93rem;
+    padding: .45rem .8rem;
+    border-radius: var(--sc-radio-chico);
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.sc-navbar .nav-link:hover,
+.sc-navbar .nav-link:focus { color: #fff; background: rgba(255, 255, 255, .1); }
+
+/* La sección en la que estamos se marca con fondo, y en el HTML con
+   aria-current, así también la anuncia un lector de pantalla. */
+.sc-navbar .nav-link[aria-current="page"] {
+    color: #fff;
+    background: rgba(255, 255, 255, .18);
+    font-weight: 600;
+}
+
+.sc-navbar .navbar-toggler {
+    border-color: rgba(255, 255, 255, .35);
+    padding: .35rem .6rem;
+}
+
+/* --------------------------------------------------------------------------
+   Estructura
+   -------------------------------------------------------------------------- */
+
+.sc-contenido {
+    flex: 1;
+    width: 100%;
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 3rem;
+}
+
+.sc-encabezado { margin-bottom: 1.75rem; }
+.sc-encabezado h1 { font-size: 1.6rem; margin-bottom: .35rem; color: var(--sc-marca); }
+.sc-encabezado p { color: var(--sc-tinta-suave); margin-bottom: 0; }
+
+.card {
+    border: 1px solid var(--sc-borde);
+    border-radius: var(--sc-radio);
+    box-shadow: var(--sc-sombra);
+    background: var(--sc-panel);
+}
+
+.card-header {
+    background: var(--sc-panel);
+    border-bottom: 1px solid var(--sc-borde);
+    padding: 1.1rem 1.35rem;
+    border-radius: var(--sc-radio) var(--sc-radio) 0 0 !important;
+}
+.card-header h2, .card-header h3, .card-header h4 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--sc-marca);
+}
+.card-header .sc-subtitulo { color: var(--sc-tinta-suave); font-size: .875rem; margin: .25rem 0 0; }
+
+.card-body { padding: 1.35rem; }
+
+.sc-seccion {
+    border-top: 1px solid var(--sc-borde);
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+}
+.sc-seccion:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.sc-seccion h3 {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: var(--sc-tinta-suave);
+    margin-bottom: 1rem;
+}
+
+/* --------------------------------------------------------------------------
+   Botones
+   -------------------------------------------------------------------------- */
+
+.btn { border-radius: var(--sc-radio-chico); font-weight: 500; }
+.btn-lg { padding: .7rem 1.4rem; }
+
+.btn-primary {
+    background: var(--sc-azul);
+    border-color: var(--sc-azul);
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+    background: var(--sc-azul-osc) !important;
+    border-color: var(--sc-azul-osc) !important;
+}
+
+.btn-outline-primary { color: var(--sc-azul); border-color: var(--sc-azul); }
+.btn-outline-primary:hover { background: var(--sc-azul); border-color: var(--sc-azul); }
+
+/* --------------------------------------------------------------------------
+   Formularios
+   -------------------------------------------------------------------------- */
+
+.form-label { font-weight: 500; font-size: .9rem; margin-bottom: .35rem; }
+.form-label .sc-opcional { font-weight: 400; color: var(--sc-tinta-suave); }
+
+.form-control, .form-select {
+    border-color: var(--sc-borde);
+    border-radius: var(--sc-radio-chico);
+    padding: .6rem .8rem;
+}
+.form-control:focus, .form-select:focus {
+    border-color: var(--sc-azul);
+    box-shadow: 0 0 0 .2rem rgba(29, 68, 112, .16);
+}
+.form-control::placeholder { color: #9aa4ae; }
+
+.form-text, .sc-ayuda {
+    font-size: .82rem;
+    color: var(--sc-tinta-suave);
+    display: block;
+    margin-top: .3rem;
+}
+
+.sc-campo-estado { font-size: .82rem; margin-top: .3rem; display: block; min-height: 1.1em; }
+.sc-campo-estado.ok { color: var(--sc-ok); }
+.sc-campo-estado.aviso { color: var(--sc-espera); }
+.sc-campo-estado.error { color: var(--sc-error); }
+
+/* Los campos obligatorios llevan un asterisco rojo */
+.sc-requerido::after {
+    content: " *";
+    color: var(--sc-error);
+    font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Carga de comprobante
+   -------------------------------------------------------------------------- */
+
+.sc-dropzone {
+    border: 2px dashed var(--sc-borde);
+    border-radius: var(--sc-radio);
+    background: #fafbfc;
+    padding: 1.75rem 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s ease, background-color .15s ease;
+    width: 100%;
+    display: block;
+}
+.sc-dropzone:hover, .sc-dropzone:focus-visible {
+    border-color: var(--sc-azul);
+    background: var(--sc-azul-claro);
+}
+.sc-dropzone.arrastrando {
+    border-color: var(--sc-azul);
+    background: var(--sc-azul-claro);
+}
+.sc-dropzone.cargado { border-color: var(--sc-ok); border-style: solid; background: var(--sc-ok-fondo); }
+.sc-dropzone.invalido { border-color: var(--sc-error); border-style: solid; background: var(--sc-error-fondo); }
+
+.sc-dropzone-icono { font-size: 1.75rem; color: var(--sc-azul); }
+.sc-dropzone-titulo { font-weight: 600; margin: .5rem 0 .15rem; }
+.sc-dropzone-detalle { font-size: .82rem; color: var(--sc-tinta-suave); margin: 0; }
+
+.sc-vista-previa { margin-top: .85rem; }
+.sc-vista-previa img {
+    max-height: 220px;
+    border-radius: var(--sc-radio-chico);
+    border: 1px solid var(--sc-borde);
+}
+
+/* --------------------------------------------------------------------------
+   Estados de un pago
+   -------------------------------------------------------------------------- */
+
+.sc-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .3rem .7rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+.sc-estado-pendiente { background: var(--sc-espera-fondo); color: var(--sc-espera); }
+.sc-estado-verificado { background: var(--sc-ok-fondo); color: var(--sc-ok); }
+.sc-estado-rechazado { background: var(--sc-error-fondo); color: var(--sc-error); }
+.sc-estado-anulado { background: var(--sc-neutro-fondo); color: var(--sc-neutro); }
+
+.sc-etiqueta {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 600;
+    padding: .22rem .6rem;
+    border-radius: 6px;
+    background: var(--sc-azul-claro);
+    color: var(--sc-azul);
+}
+
+/* El código de seguimiento va monoespaciado y separado, para que se lea
+   letra por letra cuando alguien lo dicta o lo copia. */
+.sc-codigo {
+    font-family: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+    font-weight: 700;
+    letter-spacing: .08em;
+    background: var(--sc-azul-claro);
+    color: var(--sc-azul-osc);
+    padding: .3rem .6rem;
+    border-radius: 6px;
+    font-size: .95rem;
+    user-select: all;
+}
+.sc-codigo-grande { font-size: 1.5rem; padding: .6rem 1rem; display: inline-block; }
+
+/* --------------------------------------------------------------------------
+   Indicador de estado de cuota
+   -------------------------------------------------------------------------- */
+
+.sc-medidor { margin-top: .35rem; }
+
+.sc-medidor-barra {
+    height: 12px;
+    border-radius: 999px;
+    background: var(--sc-neutro-fondo);
+    overflow: hidden;
+    display: flex;
+}
+.sc-medidor-verificado { background: var(--sc-ok); }
+.sc-medidor-revision {
+    /* Rayado en diagonal: así "en revisión" se distingue de "verificado"
+       por la textura y no sólo por el color. */
+    background-image: repeating-linear-gradient(45deg,
+        var(--sc-espera) 0 5px, var(--sc-espera-fondo) 5px 10px);
+}
+
+.sc-medidor-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: .6rem;
+    font-size: .82rem;
+    color: var(--sc-tinta-suave);
+}
+.sc-medidor-leyenda span { display: inline-flex; align-items: center; gap: .35rem; }
+.sc-medidor-leyenda i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+.sc-cifra { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+.sc-cifra-rotulo {
+    font-size: .76rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--sc-tinta-suave);
+}
+
+/* --------------------------------------------------------------------------
+   Avisos
+   -------------------------------------------------------------------------- */
+
+.sc-aviso {
+    border: 1px solid var(--sc-borde);
+    border-left: 4px solid var(--sc-azul);
+    background: var(--sc-panel);
+    border-radius: var(--sc-radio-chico);
+    padding: .9rem 1.1rem;
+    font-size: .9rem;
+}
+.sc-aviso-titulo { font-weight: 600; margin-bottom: .2rem; }
+.sc-aviso p:last-child { margin-bottom: 0; }
+.sc-aviso-atencion { border-left-color: var(--sc-espera); background: var(--sc-espera-fondo); }
+.sc-aviso-ok { border-left-color: var(--sc-ok); background: var(--sc-ok-fondo); }
+
+/* Mensajes del sistema. Van dentro de la página y no flotando: cuando
+   estaban fijos tapaban los botones de la cabecera del panel. */
+.sc-mensajes { margin-bottom: 1.5rem; }
+.sc-mensajes .alert {
+    border: 1px solid var(--sc-borde);
+    border-left-width: 4px;
+    box-shadow: var(--sc-sombra);
+    border-radius: var(--sc-radio-chico);
+    font-size: .92rem;
+    margin-bottom: .75rem;
+}
+.sc-mensajes .alert:last-child { margin-bottom: 0; }
+
+/* --------------------------------------------------------------------------
+   Tarjetas de acción del inicio
+   -------------------------------------------------------------------------- */
+
+.sc-accion {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem;
+    border: 1px solid var(--sc-borde);
+    border-radius: var(--sc-radio);
+    background: var(--sc-panel);
+    box-shadow: var(--sc-sombra);
+    text-decoration: none;
+    color: inherit;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.sc-accion:hover, .sc-accion:focus-visible {
+    transform: translateY(-2px);
+    box-shadow: var(--sc-sombra-alta);
+    border-color: var(--sc-azul);
+    color: inherit;
+}
+.sc-accion-icono {
+    width: 44px; height: 44px;
+    border-radius: var(--sc-radio-chico);
+    display: grid; place-items: center;
+    font-size: 1.3rem;
+    background: var(--sc-azul-claro);
+    color: var(--sc-azul);
+    margin-bottom: .9rem;
+}
+.sc-accion h2 { font-size: 1.05rem; margin-bottom: .35rem; }
+.sc-accion p { color: var(--sc-tinta-suave); font-size: .875rem; margin-bottom: 1rem; flex-grow: 1; }
+.sc-accion-pie { font-weight: 600; color: var(--sc-azul); font-size: .9rem; }
+
+/* --------------------------------------------------------------------------
+   Personas de un pago grupal
+   -------------------------------------------------------------------------- */
+
+.sc-persona {
+    border: 1px solid var(--sc-borde);
+    border-radius: var(--sc-radio);
+    background: #fbfcfd;
+    padding: 1.1rem;
+    margin-bottom: 1rem;
+}
+.sc-persona-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .85rem;
+}
+.sc-persona-numero { font-weight: 600; font-size: .9rem; color: var(--sc-tinta-suave); }
+
+#sc-personas.reparto-auto .sc-monto-persona { display: none; }
+
+.sc-resumen-reparto {
+    border: 1px solid var(--sc-borde);
+    border-radius: var(--sc-radio-chico);
+    background: var(--sc-neutro-fondo);
+    padding: .8rem 1rem;
+    font-size: .9rem;
+}
+
+/* --------------------------------------------------------------------------
+   Pestañas
+   -------------------------------------------------------------------------- */
+
+/* En el celular las pestañas se corren para el costado en vez de
+   apilarse: apiladas parecían una lista de enlaces. */
+.nav-tabs {
+    border-bottom: 1px solid var(--sc-borde);
+    gap: .25rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+.nav-tabs::-webkit-scrollbar { display: none; }
+.nav-tabs .nav-item { flex: 0 0 auto; }
+@media (max-width: 575.98px) {
+    .nav-tabs .nav-link { font-size: .88rem; padding: .65rem .8rem; white-space: nowrap; }
+}
+.nav-tabs .nav-link {
+    border: 0;
+    border-bottom: 3px solid transparent;
+    color: var(--sc-tinta-suave);
+    font-weight: 500;
+    padding: .7rem 1.1rem;
+    border-radius: var(--sc-radio-chico) var(--sc-radio-chico) 0 0;
+}
+.nav-tabs .nav-link:hover { border-bottom-color: var(--sc-borde); background: var(--sc-neutro-fondo); }
+.nav-tabs .nav-link.active {
+    color: var(--sc-azul);
+    background: transparent;
+    border-bottom-color: var(--sc-azul);
+}
+
+/* --------------------------------------------------------------------------
+   Tablas
+   -------------------------------------------------------------------------- */
+
+.sc-tabla { font-size: .9rem; margin-bottom: 0; }
+.sc-tabla thead th {
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--sc-tinta-suave);
+    font-weight: 600;
+    border-bottom: 1px solid var(--sc-borde);
+    padding: .7rem .75rem;
+    white-space: nowrap;
+}
+.sc-tabla tbody td { padding: .8rem .75rem; vertical-align: middle; border-color: #eef1f4; }
+.sc-tabla tbody tr:hover { background: #f8fafc; }
+.sc-importe { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+
+.sc-vacio { text-align: center; padding: 2.5rem 1rem; color: var(--sc-tinta-suave); }
+.sc-vacio-icono { font-size: 2.25rem; opacity: .4; display: block; margin-bottom: .6rem; }
+
+/* --------------------------------------------------------------------------
+   Pie
+   -------------------------------------------------------------------------- */
+
+.sc-pie {
+    background: var(--sc-marca);
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+    color: rgba(255, 255, 255, .78);
+    font-size: .84rem;
+    margin-top: auto;
+}
+.sc-pie a { color: #fff; text-decoration: none; }
+.sc-pie a:hover { text-decoration: underline; }
+
+/* --------------------------------------------------------------------------
+   Impresión
+   Para que la confirmación se pueda imprimir o guardar como PDF sin el
+   menú ni los botones.
+   -------------------------------------------------------------------------- */
+
+@media print {
+    .sc-navbar, .sc-pie, .sc-mensajes, .sc-no-imprimir { display: none !important; }
+    body { background: #fff; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+    .sc-contenido { padding: 0; max-width: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Si la persona configuró su sistema para reducir las animaciones, las
+   sacamos.
+   -------------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .001ms !important;
+        transition-duration: .001ms !important;
+    }
+}

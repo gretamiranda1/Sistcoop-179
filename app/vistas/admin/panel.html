@@ -1,0 +1,413 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Panel de la Cooperadora — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado d-flex flex-wrap justify-content-between align-items-start gap-3">
+    <div>
+        <h1>Panel de la Cooperadora</h1>
+        <p>
+            Verificación de los comprobantes cargados por el portal.
+            {% if ejercicio %}Ejercicio {{ ejercicio.anio }}, cuota {{ ejercicio.cuota|pesos }}.{% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('administracion.gestion_libretas') }}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-bookmark me-1" aria-hidden="true"></i> Libretas
+        </a>
+        <a href="{{ url_for('administracion.auditoria') }}" class="btn btn-outline-primary">
+            <i class="bi bi-clock-history me-1" aria-hidden="true"></i> Auditoría
+        </a>
+    </div>
+</div>
+
+{# ---------------------------------------------------------------- #}
+{# Saldos de los fondos                                             #}
+{# ---------------------------------------------------------------- #}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Saldos</h2>
+        <p class="sc-subtitulo">
+            Reflejan únicamente los pagos verificados. Lo cargado y sin verificar no suma acá.
+        </p>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for fondo in fondos %}
+            {% if fondo.tipo == 'capital' or fondo.saldo|float != 0 %}
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">{{ fondo.nombre }}</p>
+                <p class="sc-cifra mb-0">{{ fondo.saldo|pesos }}</p>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{# ---------------------------------------------------------------- #}
+{# Pagos pendientes de verificación                                 #}
+{# ---------------------------------------------------------------- #}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <h2>Comprobantes por verificar</h2>
+            <p class="sc-subtitulo">
+                Contrastalos contra el extracto del Banco Provincia antes de verificarlos.
+            </p>
+        </div>
+        <span class="sc-etiqueta">{{ pendientes|length }} pendiente{{ 's' if pendientes|length != 1 }}</span>
+    </div>
+
+    {% if pendientes %}
+    <div class="table-responsive">
+        <table class="table sc-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Aportante</th>
+                    <th scope="col">Concepto</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col" class="text-end">Importe</th>
+                    <th scope="col">Comprobante</th>
+                    <th scope="col" class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pendientes %}
+                <tr>
+                    <td><span class="sc-codigo">{{ pago.codigo_seguimiento }}</span></td>
+                    <td>
+                        {{ pago.aportante.nombre_completo() }}
+                        <span class="d-block sc-ayuda">DNI {{ pago.aportante.dni }}</span>
+                    </td>
+                    <td>
+                        {{ pago.tipo_legible }}
+                        {% if pago.solicita_libreta %}
+                            <span class="sc-etiqueta ms-1">Pide libreta</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ pago.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td class="text-end sc-importe">{{ pago.importe|pesos }}</td>
+                    <td>
+                        {% if pago.comprobante_nombre %}
+                        <a href="{{ url_for('administracion.ver_comprobante', pago_id=pago.id) }}"
+                           target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye" aria-hidden="true"></i> Ver
+                        </a>
+                        {% else %}
+                        <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-primary"
+                                data-bs-toggle="modal" data-bs-target="#verificar-{{ pago.id }}">
+                            Verificar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#rechazar-{{ pago.id }}">
+                            Rechazar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body sc-vacio">
+        <i class="bi bi-check2-circle sc-vacio-icono" aria-hidden="true"></i>
+        <p class="mb-0">No hay comprobantes esperando verificación.</p>
+    </div>
+    {% endif %}
+</div>
+
+{# ---------------------------------------------------------------- #}
+{# Transferencias grupales pendientes                               #}
+{# ---------------------------------------------------------------- #}
+{% if grupales_pendientes %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Transferencias grupales por verificar</h2>
+        <p class="sc-subtitulo">
+            Al verificar una, se acredita la parte de cada persona incluida.
+        </p>
+    </div>
+    <div class="table-responsive">
+        <table class="table sc-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Personas</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col" class="text-end">Importe total</th>
+                    <th scope="col">Comprobante</th>
+                    <th scope="col" class="text-end">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grupal in grupales_pendientes %}
+                <tr>
+                    <td><span class="sc-codigo">{{ grupal.codigo_seguimiento }}</span></td>
+                    <td>
+                        {{ grupal.detalles.count() }}
+                        <span class="d-block sc-ayuda">
+                            {% for d in grupal.detalles %}{{ d.aportante.nombre_completo() }}{% if not loop.last %} · {% endif %}{% endfor %}
+                        </span>
+                    </td>
+                    <td>{{ grupal.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td class="text-end sc-importe">{{ grupal.importe_total|pesos }}</td>
+                    <td>
+                        {% if grupal.comprobante_nombre %}
+                        <a href="{{ url_for('administracion.ver_comprobante_grupal', pago_id=grupal.id) }}"
+                           target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-eye" aria-hidden="true"></i> Ver
+                        </a>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <form method="POST" class="d-inline"
+                              action="{{ url_for('administracion.verificar_pago_grupal', pago_id=grupal.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-sm btn-primary">Verificar</button>
+                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#rechazar-grupal-{{ grupal.id }}">
+                            Rechazar
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{# ---------------------------------------------------------------- #}
+{# Solicitudes de fondos                                            #}
+{# ---------------------------------------------------------------- #}
+{% if solicitudes %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Solicitudes de fondos y eventos</h2>
+        <p class="sc-subtitulo">
+            Pedidos presentados por cursos y docentes. La resolución se implementa en Incremento 3.
+        </p>
+    </div>
+    <div class="table-responsive">
+        <table class="table sc-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Responsable</th>
+                    <th scope="col">Tipo</th>
+                    <th scope="col">Concepto</th>
+                    <th scope="col" class="text-end">Estimado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitudes %}
+                <tr>
+                    <td><span class="sc-codigo">{{ s.codigo_seguimiento }}</span></td>
+                    <td>
+                        {{ s.responsable }}
+                        <span class="d-block sc-ayuda">{{ s.contacto }}</span>
+                    </td>
+                    <td>{{ s.tipo_legible }}</td>
+                    <td>{{ s.concepto }}</td>
+                    <td class="text-end sc-importe">{{ s.importe_estimado|pesos }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{# ---------------------------------------------------------------- #}
+{# Ejercicio                                                        #}
+{# ---------------------------------------------------------------- #}
+{% if current_user.rol == 'admin' %}
+<div class="card">
+    <div class="card-header">
+        <h2>Ejercicio y cuota</h2>
+    </div>
+    <div class="card-body">
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <h3 class="sc-cifra-rotulo">Corregir la cuota vigente</h3>
+
+                {% if puede_editar_cuota %}
+                <form method="POST" action="{{ url_for('administracion.editar_cuota') }}" class="row g-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-8">
+                        <label for="cuota" class="sc-solo-lectores">Nuevo importe de la cuota</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="cuota" name="cuota"
+                                   value="{{ ejercicio.cuota }}" step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                    </div>
+                </form>
+                <p class="sc-ayuda mt-2">
+                    Sólo para enmendar un error de carga. El importe se fija en asamblea
+                    y deja de poder modificarse en cuanto se registre el primer pago.
+                </p>
+                {% else %}
+                <div class="sc-aviso sc-aviso-atencion">
+                    <p class="mb-0">
+                        <i class="bi bi-lock" aria-hidden="true"></i> {{ motivo_cuota }}
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <h3 class="sc-cifra-rotulo">Abrir el próximo ejercicio</h3>
+                <form method="POST" action="{{ url_for('administracion.nuevo_ejercicio') }}" class="row g-2">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="col-4">
+                        <label for="anio" class="form-label">Año</label>
+                        <input type="number" class="form-control" id="anio" name="anio"
+                               min="2020" max="2100" required>
+                    </div>
+                    <div class="col-8">
+                        <label for="cuota-nueva" class="form-label">Cuota fijada en asamblea</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="cuota-nueva" name="cuota"
+                                   step="0.01" min="0.01" required>
+                        </div>
+                    </div>
+                    <div class="col-8">
+                        <label for="fecha-asamblea" class="form-label">Fecha de la asamblea</label>
+                        <input type="date" class="form-control" id="fecha-asamblea" name="fecha_asamblea">
+                    </div>
+                    <div class="col-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary w-100">Abrir</button>
+                    </div>
+                </form>
+                <p class="sc-ayuda mt-2">
+                    Al abrir uno nuevo, el ejercicio actual queda cerrado.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endif %}
+
+{# ---------------------------------------------------------------- #}
+{# Ventanas de verificación y rechazo                               #}
+{# ---------------------------------------------------------------- #}
+{% for pago in pendientes %}
+<div class="modal fade" id="verificar-{{ pago.id }}" tabindex="-1"
+     aria-labelledby="verificar-titulo-{{ pago.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="POST"
+              action="{{ url_for('administracion.verificar_pago', pago_id=pago.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h3 class="modal-title h5" id="verificar-titulo-{{ pago.id }}">
+                    Verificar {{ pago.codigo_seguimiento }}
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    {{ pago.aportante.nombre_completo() }} —
+                    <strong>{{ pago.importe|pesos }}</strong> del {{ pago.fecha.strftime('%d/%m/%Y') }}.
+                </p>
+                <div class="row g-2">
+                    <div class="col-4">
+                        <label for="serie-{{ pago.id }}" class="form-label">Serie</label>
+                        <input type="text" class="form-control" id="serie-{{ pago.id }}"
+                               name="serie_recibo" maxlength="5" placeholder="A">
+                    </div>
+                    <div class="col-8">
+                        <label for="recibo-{{ pago.id }}" class="form-label">N° de recibo</label>
+                        <input type="text" class="form-control" id="recibo-{{ pago.id }}"
+                               name="numero_recibo" maxlength="20">
+                    </div>
+                </div>
+                <p class="sc-ayuda mt-2">
+                    Al verificar, el importe se acredita en {{ pago.fondo.nombre }} y baja el
+                    saldo pendiente del aportante.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Confirmar verificación</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="rechazar-{{ pago.id }}" tabindex="-1"
+     aria-labelledby="rechazar-titulo-{{ pago.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="POST"
+              action="{{ url_for('administracion.rechazar_pago', pago_id=pago.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h3 class="modal-title h5" id="rechazar-titulo-{{ pago.id }}">
+                    Rechazar {{ pago.codigo_seguimiento }}
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="motivo-{{ pago.id }}" class="form-label sc-requerido">Motivo del rechazo</label>
+                <textarea class="form-control" id="motivo-{{ pago.id }}" name="motivo"
+                          rows="3" required
+                          placeholder="Ej.: la transferencia no figura en el extracto del período"></textarea>
+                <p class="sc-ayuda mt-2">
+                    El motivo queda registrado en auditoría y el aportante lo ve al consultar su código.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Rechazar pago</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% for grupal in grupales_pendientes %}
+<div class="modal fade" id="rechazar-grupal-{{ grupal.id }}" tabindex="-1"
+     aria-labelledby="rechazar-grupal-titulo-{{ grupal.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="POST"
+              action="{{ url_for('administracion.rechazar_pago_grupal', pago_id=grupal.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h3 class="modal-title h5" id="rechazar-grupal-titulo-{{ grupal.id }}">
+                    Rechazar {{ grupal.codigo_seguimiento }}
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="motivo-grupal-{{ grupal.id }}" class="form-label sc-requerido">Motivo del rechazo</label>
+                <textarea class="form-control" id="motivo-grupal-{{ grupal.id }}" name="motivo"
+                          rows="3" required></textarea>
+                <p class="sc-ayuda mt-2">
+                    Se rechazan también las {{ grupal.detalles.count() }} imputaciones individuales.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Rechazar transferencia</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% endblock %}

@@ -1,0 +1,24 @@
+# SistCoop 179 — dependencias de la aplicación
+#
+# Las versiones están fijadas a propósito: sin fijarlas, dos integrantes
+# pueden terminar con versiones distintas y un error que "sólo pasa en una
+# máquina". Flask-WTF 1.1.x exige Werkzeug < 2.4, por eso Werkzeug también
+# está fijado.
+
+Flask==2.3.3
+Werkzeug==2.3.8
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.5
+Flask-Login==0.6.3
+Flask-WTF==1.1.1
+WTForms==3.0.1
+SQLAlchemy==2.0.23
+python-dotenv==1.0.0
+
+# PostgreSQL: motor comprometido para producción.
+psycopg2-binary==2.9.7
+
+# Detección del tipo real de los archivos subidos. En Windows requiere
+# además el paquete python-magic-bin. Si no está disponible, el sistema cae
+# a verificar la firma binaria del archivo (ver app/utilidades/archivos.py).
+python-magic==0.4.27

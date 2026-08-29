@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Solicitudes — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Solicitudes</h1>
+    <p>Pedidos de fondos y eventos para cursos y docentes, y duplicado de libreta.</p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+
+        {% set tab = tab_activa|default('fondos') %}
+
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab != 'libreta' %}active{% endif %}" id="tab-fondos"
+                        data-bs-toggle="tab" data-bs-target="#panel-fondos" type="button"
+                        role="tab" aria-controls="panel-fondos"
+                        aria-selected="{{ 'false' if tab == 'libreta' else 'true' }}">
+                    <i class="bi bi-cash-coin" aria-hidden="true"></i> Fondos o evento
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab == 'libreta' %}active{% endif %}" id="tab-libreta"
+                        data-bs-toggle="tab" data-bs-target="#panel-libreta" type="button"
+                        role="tab" aria-controls="panel-libreta"
+                        aria-selected="{{ 'true' if tab == 'libreta' else 'false' }}">
+                    <i class="bi bi-journal-bookmark" aria-hidden="true"></i> Duplicado de libreta
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+
+        {# ============================================================== #}
+        {# Solicitud de fondos o evento                                   #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if tab != 'libreta' %}show active{% endif %}"
+             id="panel-fondos" role="tabpanel" aria-labelledby="tab-fondos">
+
+            <div class="sc-aviso mb-4">
+                <p class="sc-aviso-titulo">
+                    <i class="bi bi-people" aria-hidden="true"></i> Para docentes y cursos
+                </p>
+                <p class="mb-0">
+                    Pedido de fondos de la carrera, autorización de un evento o de un viaje.
+                    Queda registrado con un código para que puedas consultar cómo se resolvió.
+                </p>
+            </div>
+
+            <form method="POST" id="form-fondos" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="tipo_solicitud" value="fondos">
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="responsable" class="form-label sc-requerido">Nombre del responsable</label>
+                        <input type="text" class="form-control" id="responsable" name="responsable" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contacto" class="form-label sc-requerido">Teléfono o correo de contacto</label>
+                        <input type="text" class="form-control" id="contacto" name="contacto"
+                               placeholder="11 5555-4433 o docente@instituto.edu.ar" required>
+                    </div>
+
+                    {# Las carreras salen de la base, no de una lista escrita a mano
+                       en la plantilla: si la Cooperadora agrega una, aparece sola. #}
+                    <div class="col-md-6">
+                        <label for="carrera-solicitud" class="form-label sc-requerido">Carrera</label>
+                        <select class="form-select" id="carrera-solicitud" name="carrera_id" required>
+                            <option value="">Elegí una carrera</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="curso" class="form-label">
+                            Curso o comisión <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        <input type="text" class="form-control" id="curso" name="curso"
+                               placeholder="Ej.: 3° año, turno noche">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="tipo-solicitud" class="form-label sc-requerido">¿Qué estás solicitando?</label>
+                        <select class="form-select" id="tipo-solicitud" name="tipo" required>
+                            <option value="">Elegí una opción</option>
+                            <option value="fondos">Fondos de la carrera</option>
+                            <option value="evento">Autorización de un evento</option>
+                            <option value="viaje">Viaje o proyecto</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="importe-solicitud" class="form-label sc-requerido">Importe estimado</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe-solicitud" name="importe"
+                                   step="0.01" min="0.01" inputmode="decimal" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="concepto" class="form-label sc-requerido">Concepto</label>
+                        <input type="text" class="form-control" id="concepto" name="concepto"
+                               placeholder="Ej.: insumos para la salida educativa" maxlength="200" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="fecha-estimada" class="form-label">
+                            Fecha estimada <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        <input type="date" class="form-control" id="fecha-estimada" name="fecha_estimada">
+                    </div>
+
+                    <div class="col-12">
+                        <label for="justificacion" class="form-label sc-requerido">Justificación</label>
+                        <textarea class="form-control" id="justificacion" name="justificacion" rows="4"
+                                  minlength="20" required
+                                  placeholder="Qué se va a comprar u organizar, para qué materia o actividad, y a cuántas personas beneficia."></textarea>
+                        <span class="sc-ayuda">
+                            La Cooperadora tiene que justificar cada egreso ante la Dirección de
+                            Cooperación Escolar, así que cuanto más claro esté el pedido, más rápido se resuelve.
+                        </span>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-fondos">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar solicitud
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        {# ============================================================== #}
+        {# Duplicado de libreta                                           #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if tab == 'libreta' %}show active{% endif %}"
+             id="panel-libreta" role="tabpanel" aria-labelledby="tab-libreta">
+
+            <div class="sc-aviso sc-aviso-atencion mb-4">
+                <p class="sc-aviso-titulo">
+                    <i class="bi bi-journal-bookmark" aria-hidden="true"></i> Duplicado de libreta
+                </p>
+                <p class="mb-0">
+                    Usalo si perdiste la libreta o necesitás un duplicado. El costo se abona
+                    por transferencia y se carga acá el comprobante, igual que un aporte.
+                </p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="form-libreta" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="tipo_solicitud" value="libreta">
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label for="dni-libreta" class="form-label sc-requerido">DNI</label>
+                        <input type="text" class="form-control" id="dni-libreta" name="dni"
+                               placeholder="33123456" inputmode="numeric"
+                               aria-describedby="dni-libreta-estado" required>
+                        <span class="sc-campo-estado" id="dni-libreta-estado" aria-live="polite"></span>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="nombre-libreta" class="form-label sc-requerido">Nombre</label>
+                        <input type="text" class="form-control" id="nombre-libreta" name="nombre" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="apellido-libreta" class="form-label sc-requerido">Apellido</label>
+                        <input type="text" class="form-control" id="apellido-libreta" name="apellido" required>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="carrera-libreta" class="form-label sc-requerido">Carrera</label>
+                        <select class="form-select" id="carrera-libreta" name="carrera_id" required>
+                            <option value="">Elegí una carrera</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="anio-libreta" class="form-label sc-requerido">Año que cursa</label>
+                        <select class="form-select" id="anio-libreta" name="anio" required>
+                            <option value="">Elegí</option>
+                            {% for a in anios %}
+                            <option value="{{ a }}">{{ a }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="motivo-libreta" class="form-label sc-requerido">Motivo</label>
+                        <select class="form-select" id="motivo-libreta" name="motivo" required>
+                            <option value="">Elegí un motivo</option>
+                            <option value="extravio">Extravío</option>
+                            <option value="rotura">Rotura</option>
+                            <option value="robo">Robo</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="importe-libreta" class="form-label sc-requerido">Importe transferido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe-libreta" name="importe"
+                                   step="0.01" min="0.01" inputmode="decimal" required>
+                        </div>
+                    </div>
+
+                    {{ c.campo_fecha('fecha-libreta') }}
+                    {{ c.campo_codigo_transaccion('codigo-libreta', 'transaccion-libreta-estado') }}
+
+                    {{ c.zona_comprobante('zona-libreta', 'comprobante-libreta',
+                                          'comprobante-libreta-estado', 'comprobante-libreta-vista') }}
+
+                    <div class="col-12">
+                        <label for="observaciones-libreta" class="form-label">
+                            Observaciones <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        {# El motivo alcanza para tramitar el duplicado: quien está pagando
+                           no tiene por qué explicar además qué le pasó con la libreta. #}
+                        <textarea class="form-control" id="observaciones-libreta" name="observaciones"
+                                  rows="2" maxlength="500"
+                                  placeholder="Sólo si querés agregar algo."></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-libreta">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar solicitud
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    evitarDobleEnvio('form-fondos', 'btn-fondos', 'Enviando solicitud…');
+
+    configurarCarga('zona-libreta', 'comprobante-libreta',
+                    'comprobante-libreta-estado', 'comprobante-libreta-vista');
+    validarDni('dni-libreta', 'dni-libreta-estado');
+    validarTransaccion('codigo-libreta', 'transaccion-libreta-estado');
+    evitarDobleEnvio('form-libreta', 'btn-libreta', 'Enviando solicitud…');
+});
+</script>
+{% endblock %}

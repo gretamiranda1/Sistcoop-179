@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Pagar la cuota — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Pagar la cuota de la Cooperadora</h1>
+    <p>
+        Cargá el comprobante de la transferencia que ya hiciste.
+        {% if cuota %}La cuota completa del año es <strong>{{ cuota|pesos }}</strong>, y se puede pagar en partes.{% endif %}
+    </p>
+</div>
+
+<div class="card">
+    <div class="card-body">
+
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not es_grupal %}active{% endif %}" id="tab-individual"
+                        data-bs-toggle="tab" data-bs-target="#panel-individual" type="button"
+                        role="tab" aria-controls="panel-individual"
+                        aria-selected="{{ 'false' if es_grupal else 'true' }}">
+                    <i class="bi bi-person" aria-hidden="true"></i> Pago para una persona
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if es_grupal %}active{% endif %}" id="tab-grupal"
+                        data-bs-toggle="tab" data-bs-target="#panel-grupal" type="button"
+                        role="tab" aria-controls="panel-grupal"
+                        aria-selected="{{ 'true' if es_grupal else 'false' }}">
+                    <i class="bi bi-people" aria-hidden="true"></i> Una transferencia para varias personas
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+
+        {# ============================================================== #}
+        {# Pago individual                                                #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if not es_grupal %}show active{% endif %}"
+             id="panel-individual" role="tabpanel" aria-labelledby="tab-individual">
+
+            <form method="POST" enctype="multipart/form-data" id="form-cuota" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="es_grupal" value="false">
+
+                <div class="row g-3">
+
+                    <div class="col-12">
+                        <h2 class="h6 text-uppercase sc-cifra-rotulo mb-0">Quién hizo el aporte</h2>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="dni" class="form-label sc-requerido">DNI</label>
+                        <input type="text" class="form-control" id="dni" name="dni"
+                               value="{{ data.dni or '' }}" placeholder="33123456"
+                               inputmode="numeric" autocomplete="off"
+                               aria-describedby="dni-estado dni-ayuda" required>
+                        <span class="sc-campo-estado" id="dni-estado" aria-live="polite"></span>
+                        <span class="sc-ayuda" id="dni-ayuda">Sin puntos ni espacios.</span>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="nombre" class="form-label sc-requerido">Nombre</label>
+                        <input type="text" class="form-control" id="nombre" name="nombre"
+                               value="{{ data.nombre or '' }}" autocomplete="given-name" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="apellido" class="form-label sc-requerido">Apellido</label>
+                        <input type="text" class="form-control" id="apellido" name="apellido"
+                               value="{{ data.apellido or '' }}" autocomplete="family-name" required>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label for="carrera_id" class="form-label sc-requerido">Carrera</label>
+                        <select class="form-select" id="carrera_id" name="carrera_id" required>
+                            <option value="">Elegí una carrera</option>
+                            {% for carrera in carreras %}
+                            <option value="{{ carrera.id }}"
+                                {% if data.carrera_id|string == carrera.id|string %}selected{% endif %}>
+                                {{ carrera.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="anio" class="form-label">Año que cursa</label>
+                        <select class="form-select" id="anio" name="anio">
+                            <option value="">Sin especificar</option>
+                            {% for a in anios %}
+                            <option value="{{ a }}" {% if data.anio == a %}selected{% endif %}>{{ a }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    {{ c.panel_estado_cuota('estado-cuota') }}
+
+                    <div class="col-12 sc-seccion">
+                        <h2 class="h6 text-uppercase sc-cifra-rotulo mb-0">Datos de la transferencia</h2>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="importe" class="form-label sc-requerido">Importe transferido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe" name="importe"
+                                   value="{{ data.importe or '' }}" step="0.01" min="0.01"
+                                   inputmode="decimal" required aria-describedby="importe-ayuda">
+                        </div>
+                        <span class="sc-ayuda" id="importe-ayuda">
+                            El monto exacto que figura en el comprobante, aunque no sea la cuota completa.
+                        </span>
+                    </div>
+
+                    {{ c.campo_fecha('fecha', valor=data.fecha) }}
+                    {{ c.campo_codigo_transaccion('codigo_transaccion', 'transaccion-estado', data.codigo_transaccion) }}
+
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="solicita_libreta"
+                                   name="solicita_libreta" value="true"
+                                   {% if data.solicita_libreta %}checked{% endif %}>
+                            <label class="form-check-label" for="solicita_libreta">
+                                Necesito retirar mi libreta
+                            </label>
+                            <span class="sc-ayuda">
+                                Marcalo para que Preceptoría la tenga preparada. No es un requisito del pago.
+                            </span>
+                        </div>
+                    </div>
+
+                    {{ c.zona_comprobante('zona-comprobante', 'comprobante', 'comprobante-estado', 'comprobante-vista') }}
+
+                    <div class="col-12">
+                        <label for="observaciones" class="form-label">
+                            Aclaración <span class="sc-opcional">(opcional)</span>
+                        </label>
+                        <textarea class="form-control" id="observaciones" name="observaciones"
+                                  rows="2" maxlength="500"
+                                  placeholder="Si hay algo que la Cooperadora tenga que saber sobre este pago">{{ data.observaciones or '' }}</textarea>
+                    </div>
+                </div>
+
+                <div class="sc-aviso mt-4">
+                    <p class="mb-0">
+                        <i class="bi bi-shield-check" aria-hidden="true"></i>
+                        Cargar el comprobante <strong>no acredita el pago automáticamente</strong>.
+                        La Cooperadora lo compara con el movimiento real del banco y recién ahí queda verificado.
+                    </p>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-cuota">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar comprobante
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        {# ============================================================== #}
+        {# Pago grupal                                                    #}
+        {# ============================================================== #}
+        <div class="tab-pane fade {% if es_grupal %}show active{% endif %}"
+             id="panel-grupal" role="tabpanel" aria-labelledby="tab-grupal">
+
+            <div class="sc-aviso mb-4">
+                <p class="sc-aviso-titulo">
+                    <i class="bi bi-people" aria-hidden="true"></i> Una transferencia, varias cuotas
+                </p>
+                <p class="mb-0">
+                    Sirve cuando una familia o un grupo de compañeros hace una sola transferencia
+                    que cubre a más de una persona. Mínimo dos personas, con DNI distintos.
+                </p>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="form-grupal" novalidate>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="es_grupal" value="true">
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h2 class="h6 text-uppercase sc-cifra-rotulo mb-0">Datos de la transferencia</h2>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="importe_total" class="form-label sc-requerido">Importe total transferido</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="importe_total" name="importe_total"
+                                   value="{{ data.importe_total or '' }}" step="0.01" min="0.01"
+                                   inputmode="decimal" required>
+                        </div>
+                    </div>
+
+                    {{ c.campo_fecha('fecha-grupal', valor=data.fecha) }}
+                    {{ c.campo_codigo_transaccion('codigo-transaccion-grupal', 'transaccion-grupal-estado', data.codigo_transaccion) }}
+
+                    {{ c.zona_comprobante('zona-comprobante-grupal', 'comprobante-grupal', 'comprobante-grupal-estado', 'comprobante-grupal-vista') }}
+
+                    <div class="col-12 sc-seccion">
+                        <h2 class="h6 text-uppercase sc-cifra-rotulo mb-2">Cómo se reparte el importe</h2>
+
+                        <div class="btn-group" role="group" aria-label="Forma de repartir el importe">
+                            <input type="radio" class="btn-check" name="tipo_distribucion"
+                                   id="reparto-auto" value="auto" checked>
+                            <label class="btn btn-outline-primary" for="reparto-auto">
+                                <i class="bi bi-magic me-1" aria-hidden="true"></i>Partes iguales
+                            </label>
+
+                            <input type="radio" class="btn-check" name="tipo_distribucion"
+                                   id="reparto-manual" value="manual">
+                            <label class="btn btn-outline-primary" for="reparto-manual">
+                                <i class="bi bi-sliders me-1" aria-hidden="true"></i>Indico cuánto va para cada uno
+                            </label>
+                        </div>
+
+                        <p class="sc-ayuda mt-2 mb-0" id="reparto-ayuda" aria-live="polite">
+                            Se reparte en partes iguales entre quienes todavía tengan cuota pendiente.
+                            A quien ya la completó no se le asigna nada.
+                        </p>
+                    </div>
+
+                    <div class="col-12 sc-seccion">
+                        <h2 class="h6 text-uppercase sc-cifra-rotulo mb-2">Personas que cubre este pago</h2>
+                        <p class="sc-ayuda mb-3">Mínimo dos personas. No se puede repetir el mismo DNI.</p>
+
+                        {# El servidor recorre las filas de 1 hasta esta cantidad.
+                           El JavaScript la actualiza al agregar o quitar personas. #}
+                        <input type="hidden" name="cantidad_personas" id="cantidad-personas" value="2">
+
+                        <div id="sc-personas" class="reparto-auto">
+                            {% for n in [1, 2] %}
+                            <fieldset class="sc-persona">
+                                <div class="sc-persona-cabecera">
+                                    <legend class="sc-persona-numero mb-0">Persona {{ n }}</legend>
+                                    <button type="button" class="btn btn-sm btn-outline-danger sc-quitar-persona">
+                                        <i class="bi bi-trash" aria-hidden="true"></i>
+                                        <span class="sc-solo-lectores">Quitar esta persona</span>
+                                    </button>
+                                </div>
+                                <div class="row g-2">
+                                    <div class="col-sm-4">
+                                        <label class="form-label sc-requerido">DNI</label>
+                                        <input type="text" class="form-control form-control-sm sc-dni"
+                                               name="dni_{{ n }}" placeholder="33123456"
+                                               inputmode="numeric" required>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label sc-requerido">Nombre</label>
+                                        <input type="text" class="form-control form-control-sm sc-nombre"
+                                               name="nombre_{{ n }}" required>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <label class="form-label sc-requerido">Apellido</label>
+                                        <input type="text" class="form-control form-control-sm sc-apellido"
+                                               name="apellido_{{ n }}" required>
+                                    </div>
+                                    <div class="col-sm-5">
+                                        <label class="form-label">Carrera</label>
+                                        <select class="form-select form-select-sm sc-carrera" name="carrera_{{ n }}">
+                                            <option value="">Sin especificar</option>
+                                            {% for carrera in carreras %}
+                                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-3">
+                                        <label class="form-label">Año</label>
+                                        <select class="form-select form-select-sm sc-anio" name="anio_{{ n }}">
+                                            <option value="">—</option>
+                                            {% for a in anios %}
+                                            <option value="{{ a }}">{{ a }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-sm-4 sc-monto-persona">
+                                        <label class="form-label">Le corresponde</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">$</span>
+                                            <input type="number" class="form-control sc-monto"
+                                                   name="monto_{{ n }}" step="0.01" min="0"
+                                                   inputmode="decimal">
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input sc-libreta" type="checkbox"
+                                                   name="libreta_{{ n }}" value="si">
+                                            <label class="form-check-label small">Necesita retirar su libreta</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </fieldset>
+                            {% endfor %}
+                        </div>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm" id="btn-agregar-persona">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar otra persona
+                        </button>
+
+                        <div class="sc-resumen-reparto mt-3" id="resumen-reparto" hidden aria-live="polite">
+                            <span>Repartido: <strong id="reparto-asignado">$ 0,00</strong>
+                            de <strong id="reparto-total">$ 0,00</strong></span>
+                            <span class="ms-2 fw-semibold" id="reparto-estado"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg" id="btn-grupal">
+                        <i class="bi bi-send me-2" aria-hidden="true"></i>Enviar pago grupal
+                    </button>
+                    <a href="{{ url_for('aportantes.inicio') }}" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ---- Pago individual ----------------------------------------------
+    configurarCarga('zona-comprobante', 'comprobante',
+                    'comprobante-estado', 'comprobante-vista');
+    validarDni('dni', 'dni-estado');
+    validarTransaccion('codigo_transaccion', 'transaccion-estado');
+    configurarEstadoCuota('dni', 'estado-cuota', 'importe');
+    evitarDobleEnvio('form-cuota', 'btn-cuota', 'Enviando comprobante…');
+
+    // ---- Pago grupal ---------------------------------------------------
+    configurarCarga('zona-comprobante-grupal', 'comprobante-grupal',
+                    'comprobante-grupal-estado', 'comprobante-grupal-vista');
+    validarTransaccion('codigo-transaccion-grupal', 'transaccion-grupal-estado');
+    evitarDobleEnvio('form-grupal', 'btn-grupal', 'Enviando pago grupal…');
+
+    var personas = document.getElementById('sc-personas');
+    var importeTotal = document.getElementById('importe_total');
+    var resumen = document.getElementById('resumen-reparto');
+    var repartoAuto = document.getElementById('reparto-auto');
+    var repartoManual = document.getElementById('reparto-manual');
+    var ayudaReparto = document.getElementById('reparto-ayuda');
+
+    // Cada fila tiene sus campos numerados: dni_1, nombre_1, monto_1, y así.
+    // Cuando se agrega o se saca una persona hay que volver a numerarlos, y
+    // avisarle al servidor cuántas filas quedaron.
+    function renumerar() {
+        var filas = personas.querySelectorAll('.sc-persona');
+
+        filas.forEach(function (fila, i) {
+            var numero = i + 1;
+            fila.querySelector('.sc-persona-numero').textContent = 'Persona ' + numero;
+
+            fila.querySelector('.sc-dni').name = 'dni_' + numero;
+            fila.querySelector('.sc-nombre').name = 'nombre_' + numero;
+            fila.querySelector('.sc-apellido').name = 'apellido_' + numero;
+            fila.querySelector('.sc-carrera').name = 'carrera_' + numero;
+            fila.querySelector('.sc-anio').name = 'anio_' + numero;
+            fila.querySelector('.sc-monto').name = 'monto_' + numero;
+            fila.querySelector('.sc-libreta').name = 'libreta_' + numero;
+        });
+
+        document.getElementById('cantidad-personas').value = filas.length;
+
+        // Con sólo dos personas no se puede sacar ninguna: es el mínimo
+        var soloDos = (filas.length <= 2);
+        personas.querySelectorAll('.sc-quitar-persona').forEach(function (boton) {
+            boton.disabled = soloDos;
+            boton.title = soloDos
+                ? 'Un pago grupal necesita al menos dos personas'
+                : 'Quitar esta persona';
+        });
+    }
+
+    function marcarDnisRepetidos() {
+        var campos = personas.querySelectorAll('.sc-dni');
+        var vistos = {};
+        var hayRepetido = false;
+
+        campos.forEach(function (campo) {
+            campo.classList.remove('is-invalid');
+            campo.setCustomValidity('');
+
+            var valor = campo.value.trim().replace(/\D/g, '');
+            if (!valor) {
+                return;
+            }
+
+            if (vistos[valor]) {
+                hayRepetido = true;
+                campo.classList.add('is-invalid');
+                campo.setCustomValidity('Este DNI ya está en otra fila de este mismo pago.');
+                vistos[valor].classList.add('is-invalid');
+            } else {
+                vistos[valor] = campo;
+            }
+        });
+
+        return !hayRepetido;
+    }
+
+    function sumarAsignado() {
+        var total = 0;
+        personas.querySelectorAll('.sc-monto').forEach(function (input) {
+            total = total + (parseFloat(input.value) || 0);
+        });
+        return total;
+    }
+
+    function actualizarResumen() {
+        if (!repartoManual.checked) {
+            resumen.hidden = true;
+            return;
+        }
+
+        var total = parseFloat(importeTotal.value) || 0;
+        var asignado = sumarAsignado();
+
+        document.getElementById('reparto-asignado').textContent = enPesos(asignado);
+        document.getElementById('reparto-total').textContent = enPesos(total);
+
+        var estado = document.getElementById('reparto-estado');
+        var diferencia = asignado - total;
+
+        if (Math.abs(diferencia) < 0.01) {
+            estado.textContent = 'Coincide con lo transferido.';
+            estado.style.color = 'var(--sc-ok)';
+        } else if (diferencia > 0) {
+            estado.textContent = 'Estás repartiendo ' + enPesos(diferencia) + ' de más.';
+            estado.style.color = 'var(--sc-error)';
+        } else {
+            estado.textContent = 'Quedan ' + enPesos(-diferencia) + ' sin repartir.';
+            estado.style.color = 'var(--sc-espera)';
+        }
+
+        resumen.hidden = false;
+    }
+
+    function cambiarModoReparto() {
+        var manual = repartoManual.checked;
+
+        // La clase del contenedor es la que muestra u oculta los campos de monto
+        personas.classList.toggle('reparto-manual', manual);
+        personas.classList.toggle('reparto-auto', !manual);
+
+        if (manual) {
+            ayudaReparto.textContent = 'Indicá cuánto le corresponde a cada persona. ' +
+                'La suma no puede superar el importe transferido.';
+        } else {
+            ayudaReparto.textContent = 'Se reparte en partes iguales entre quienes ' +
+                'todavía tengan cuota pendiente. A quien ya la completó no se le asigna nada.';
+        }
+
+        actualizarResumen();
+    }
+
+    document.getElementById('btn-agregar-persona').addEventListener('click', function () {
+        // Clonamos la primera fila y le vaciamos los campos
+        var nueva = personas.querySelector('.sc-persona').cloneNode(true);
+
+        nueva.querySelectorAll('input').forEach(function (input) {
+            if (input.type === 'checkbox') {
+                input.checked = false;
+            } else {
+                input.value = '';
+            }
+            input.classList.remove('is-invalid', 'is-valid');
+        });
+        nueva.querySelectorAll('select').forEach(function (select) {
+            select.selectedIndex = 0;
+        });
+
+        personas.appendChild(nueva);
+        renumerar();
+        nueva.querySelector('.sc-dni').focus();
+    });
+
+    personas.addEventListener('click', function (e) {
+        var boton = e.target.closest('.sc-quitar-persona');
+        if (!boton || boton.disabled) {
+            return;
+        }
+        boton.closest('.sc-persona').remove();
+        renumerar();
+        marcarDnisRepetidos();
+        actualizarResumen();
+    });
+
+    personas.addEventListener('input', function (e) {
+        if (e.target.classList.contains('sc-dni')) {
+            marcarDnisRepetidos();
+        }
+        if (e.target.classList.contains('sc-monto')) {
+            actualizarResumen();
+        }
+    });
+
+    repartoAuto.addEventListener('change', cambiarModoReparto);
+    repartoManual.addEventListener('change', cambiarModoReparto);
+    importeTotal.addEventListener('input', actualizarResumen);
+
+    document.getElementById('form-grupal').addEventListener('submit', function (e) {
+        if (!marcarDnisRepetidos()) {
+            e.preventDefault();
+            personas.querySelector('.is-invalid').focus();
+            return;
+        }
+
+        if (repartoManual.checked) {
+            var total = parseFloat(importeTotal.value) || 0;
+            if (sumarAsignado() - total > 0.01) {
+                e.preventDefault();
+                actualizarResumen();
+                resumen.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+
+    renumerar();
+});
+</script>
+{% endblock %}

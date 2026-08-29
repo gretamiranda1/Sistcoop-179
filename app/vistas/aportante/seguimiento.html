@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+{% import "_componentes.html" as c %}
+
+{% block title %}Consultar estado — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Consultar el estado de un aporte</h1>
+    <p>Averiguá si la Cooperadora ya verificó lo que cargaste.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+
+        <ul class="nav nav-tabs mb-4" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if not dni %}active{% endif %}" id="tab-codigo"
+                        data-bs-toggle="tab" data-bs-target="#panel-codigo" type="button"
+                        role="tab" aria-controls="panel-codigo"
+                        aria-selected="{{ 'false' if dni else 'true' }}">
+                    <i class="bi bi-upc-scan" aria-hidden="true"></i> Por código de seguimiento
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if dni %}active{% endif %}" id="tab-dni"
+                        data-bs-toggle="tab" data-bs-target="#panel-dni" type="button"
+                        role="tab" aria-controls="panel-dni"
+                        aria-selected="{{ 'true' if dni else 'false' }}">
+                    <i class="bi bi-person-vcard" aria-hidden="true"></i> Por DNI
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <div class="tab-pane fade {% if not dni %}show active{% endif %}"
+                 id="panel-codigo" role="tabpanel" aria-labelledby="tab-codigo">
+                <form method="POST" class="row g-3 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="modo" value="codigo">
+                    <div class="col-md-8">
+                        <label for="codigo" class="form-label sc-requerido">Código de seguimiento</label>
+                        <input type="text" class="form-control" id="codigo" name="codigo"
+                               value="{{ codigo or '' }}" placeholder="SC-A3F9K2XY"
+                               autocomplete="off" spellcheck="false"
+                               style="text-transform: uppercase" required
+                               aria-describedby="codigo-ayuda">
+                        <span class="sc-ayuda" id="codigo-ayuda">
+                            Es el código que te dimos cuando cargaste el comprobante o la solicitud.
+                        </span>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-2" aria-hidden="true"></i>Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="tab-pane fade {% if dni %}show active{% endif %}"
+                 id="panel-dni" role="tabpanel" aria-labelledby="tab-dni">
+                <form method="POST" class="row g-3 align-items-end">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="modo" value="dni">
+                    <div class="col-md-8">
+                        <label for="dni" class="form-label sc-requerido">DNI</label>
+                        <input type="text" class="form-control" id="dni" name="dni"
+                               value="{{ dni or '' }}" placeholder="33123456"
+                               inputmode="numeric" autocomplete="off" required
+                               aria-describedby="dni-consulta-ayuda">
+                        <span class="sc-ayuda" id="dni-consulta-ayuda">
+                            Muestra todos los aportes cargados con ese documento.
+                        </span>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search me-2" aria-hidden="true"></i>Buscar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+{# ================================================================== #}
+{# Resultado: un pago puntual buscado por código                      #}
+{# ================================================================== #}
+{% if pago_unico %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Aporte {{ pago_unico.codigo_seguimiento }}</h2>
+        <p class="sc-subtitulo">{{ pago_unico.tipo_legible }}</p>
+    </div>
+    <div class="card-body">
+        <dl class="row g-0 mb-0">
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo">Importe</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 sc-importe">{{ pago_unico.importe|pesos }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Fecha de la transferencia</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ pago_unico.fecha.strftime('%d/%m/%Y') }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Estado</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ c.estado_pago(pago_unico.estado) }}</dd>
+
+            {% if pago_unico.numero_recibo %}
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Recibo emitido</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">
+                Serie {{ pago_unico.serie_recibo or '—' }} · N° {{ pago_unico.numero_recibo }}
+            </dd>
+            {% endif %}
+
+            {% if pago_unico.motivo_rechazo %}
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Motivo del rechazo</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ pago_unico.motivo_rechazo }}</dd>
+            {% endif %}
+        </dl>
+
+        {% if pago_unico.estado == 'pendiente' %}
+        <div class="sc-aviso mt-4">
+            <p class="mb-0">
+                <i class="bi bi-hourglass-split" aria-hidden="true"></i>
+                Todavía no está verificado. La Cooperadora revisa los comprobantes contra el
+                extracto del banco; hasta ese momento el importe no figura acreditado.
+            </p>
+        </div>
+        {% elif pago_unico.estado == 'verificado' %}
+        <div class="sc-aviso sc-aviso-ok mt-4">
+            <p class="mb-0">
+                <i class="bi bi-check-circle" aria-hidden="true"></i>
+                Verificado. El recibo físico se retira por Preceptoría.
+            </p>
+        </div>
+        {% elif pago_unico.estado == 'rechazado' %}
+        <div class="sc-aviso sc-aviso-atencion mt-4">
+            <p class="mb-0">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                Este aporte fue rechazado. Comunicate con la Cooperadora para resolverlo.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# ================================================================== #}
+{# Resultado: una transferencia grupal                                #}
+{# ================================================================== #}
+{% if grupal %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Pago grupal {{ grupal.codigo_seguimiento }}</h2>
+        <p class="sc-subtitulo">
+            {{ grupal.importe_total|pesos }} · {{ grupal.fecha.strftime('%d/%m/%Y') }}
+        </p>
+    </div>
+    <div class="card-body">
+        <p class="mb-3">Estado: {{ c.estado_pago(grupal.estado) }}</p>
+
+        <div class="table-responsive">
+            <table class="table sc-tabla">
+                <thead>
+                    <tr>
+                        <th scope="col">Persona</th>
+                        <th scope="col" class="text-end">Se le imputó</th>
+                        <th scope="col">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in grupal.detalles %}
+                    <tr>
+                        <td>{{ detalle.aportante.nombre_completo() }}</td>
+                        <td class="text-end sc-importe">{{ detalle.monto_asignado|pesos }}</td>
+                        <td>{{ c.estado_pago(detalle.estado) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{# ================================================================== #}
+{# Resultado: una solicitud de fondos                                 #}
+{# ================================================================== #}
+{% if solicitud %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Solicitud {{ solicitud.codigo_seguimiento }}</h2>
+        <p class="sc-subtitulo">{{ solicitud.tipo_legible }}</p>
+    </div>
+    <div class="card-body">
+        <dl class="row g-0 mb-0">
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo">Concepto</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0">{{ solicitud.concepto }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Importe estimado</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top sc-importe">{{ solicitud.importe_estimado|pesos }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Presentada el</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ solicitud.created_at.strftime('%d/%m/%Y') }}</dd>
+
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Estado</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ solicitud.estado_legible }}</dd>
+
+            {% if solicitud.resolucion %}
+            <dt class="col-5 col-sm-4 py-2 sc-cifra-rotulo border-top">Resolución</dt>
+            <dd class="col-7 col-sm-8 py-2 mb-0 border-top">{{ solicitud.resolucion }}</dd>
+            {% endif %}
+        </dl>
+    </div>
+</div>
+{% endif %}
+
+{# ================================================================== #}
+{# Resultado: consulta por DNI                                        #}
+{# ================================================================== #}
+{% if saldo and not pago_unico %}
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Tu cuota {{ saldo.ejercicio.anio }}</h2>
+    </div>
+    <div class="card-body">
+        <div class="row g-4 mb-3">
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Cuota del año</p>
+                <p class="sc-cifra mb-0">{{ saldo.cuota_total|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Verificado</p>
+                <p class="sc-cifra mb-0" style="color: var(--sc-ok)">{{ saldo.pagado|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">En revisión</p>
+                <p class="sc-cifra mb-0" style="color: var(--sc-espera)">{{ saldo.en_revision|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">Falta</p>
+                <p class="sc-cifra mb-0">{{ saldo.saldo_pendiente|pesos }}</p>
+            </div>
+        </div>
+
+        <div class="sc-medidor">
+            <div class="sc-medidor-barra" role="img"
+                 aria-label="Verificado {{ saldo.porcentaje_pagado }} por ciento de la cuota">
+                <div class="sc-medidor-verificado" style="width: {{ saldo.porcentaje_pagado }}%"></div>
+                <div class="sc-medidor-revision" style="width: {{ saldo.porcentaje_en_revision }}%"></div>
+            </div>
+        </div>
+
+        <div class="sc-seccion">
+            <h3>Tu libreta</h3>
+            {% if saldo.libreta_entregada %}
+                <p class="mb-0" style="color: var(--sc-ok)">
+                    <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                    Figura entregada
+                    {% if saldo.fecha_libreta %}el {{ saldo.fecha_libreta.strftime('%d/%m/%Y') }}{% endif %}.
+                </p>
+            {% else %}
+                <p class="mb-0">
+                    <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    Todavía no figura entregada. Podés retirarla por Preceptoría:
+                    la cuota es voluntaria y no condiciona la entrega de la libreta
+                    ni de ninguna otra documentación.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if pagos %}
+<div class="card">
+    <div class="card-header">
+        <h2>Aportes cargados</h2>
+        <p class="sc-subtitulo">{{ pagos|length }} registro{{ 's' if pagos|length != 1 }}</p>
+    </div>
+    <div class="table-responsive">
+        <table class="table sc-tabla">
+            <thead>
+                <tr>
+                    <th scope="col">Código</th>
+                    <th scope="col">Concepto</th>
+                    <th scope="col">Fecha</th>
+                    <th scope="col" class="text-end">Importe</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Recibo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr>
+                    <td><span class="sc-codigo">{{ pago.codigo_seguimiento }}</span></td>
+                    <td>{{ pago.tipo_legible }}</td>
+                    <td>{{ pago.fecha.strftime('%d/%m/%Y') }}</td>
+                    <td class="text-end sc-importe">{{ pago.importe|pesos }}</td>
+                    <td>{{ c.estado_pago(pago.estado) }}</td>
+                    <td>
+                        {% if pago.numero_recibo %}
+                            <span class="sc-etiqueta">{{ pago.serie_recibo or '' }} {{ pago.numero_recibo }}</span>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-body border-top">
+        <p class="sc-ayuda mb-0">
+            <i class="bi bi-info-circle" aria-hidden="true"></i>
+            Cuando un aporte figura verificado, el recibo físico se retira por Preceptoría.
+        </p>
+    </div>
+</div>
+{% elif dni %}
+<div class="card">
+    <div class="card-body sc-vacio">
+        <i class="bi bi-inbox sc-vacio-icono" aria-hidden="true"></i>
+        <p class="mb-3">No hay aportes cargados con ese DNI.</p>
+        <a href="{{ url_for('aportantes.pagar_cuota') }}" class="btn btn-primary">
+            Cargar un comprobante
+        </a>
+    </div>
+</div>
+{% elif not codigo and not pago_unico and not grupal and not solicitud %}
+<div class="card">
+    <div class="card-body sc-vacio">
+        <i class="bi bi-search sc-vacio-icono" aria-hidden="true"></i>
+        <p class="mb-0">Buscá con tu código de seguimiento o con tu DNI.</p>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

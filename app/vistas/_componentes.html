@@ -1,0 +1,128 @@
+{#
+  Pedazos de formulario que se repiten en varias pantallas.
+
+  Los sacamos acá para no tener cinco copias del mismo bloque: si hay que
+  cambiar un texto o arreglar algo, se hace en un solo lugar.
+#}
+
+{# --------------------------------------------------------------------- #}
+{# Zona de carga del comprobante                                          #}
+{# --------------------------------------------------------------------- #}
+{% macro zona_comprobante(id_zona, id_input, id_estado, id_vista, etiqueta='Comprobante de transferencia', requerido=true) %}
+<div class="col-12">
+    <label class="form-label {% if requerido %}sc-requerido{% endif %}" for="{{ id_input }}">{{ etiqueta }}</label>
+
+    {# Va como <button> y no como <div> para que se pueda llegar con Tab
+       y activar con Enter, igual que cualquier otro control. #}
+    <button type="button" class="sc-dropzone" id="{{ id_zona }}"
+            aria-describedby="{{ id_estado }}">
+        <span class="sc-dropzone-icono"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i></span>
+        <span class="sc-dropzone-titulo d-block">Tocá acá para elegir el archivo</span>
+        <span class="sc-dropzone-detalle d-block">o arrastralo hasta este recuadro</span>
+        <span class="sc-dropzone-detalle d-block mt-2">Foto o captura del comprobante (JPG, PNG) o el PDF del banco. Hasta 16 MB.</span>
+    </button>
+
+    <input type="file" class="d-none" id="{{ id_input }}" name="comprobante"
+           accept="image/jpeg,image/png,application/pdf" {% if requerido %}required{% endif %}>
+
+    <span class="sc-campo-estado" id="{{ id_estado }}" aria-live="polite"></span>
+    <div class="sc-vista-previa" id="{{ id_vista }}" hidden></div>
+</div>
+{% endmacro %}
+
+
+{# --------------------------------------------------------------------- #}
+{# Datos de la transferencia (fecha, importe, código)                     #}
+{# --------------------------------------------------------------------- #}
+{% macro campo_fecha(id, nombre='fecha', valor='', etiqueta='Fecha de la transferencia') %}
+<div class="col-md-6">
+    <label for="{{ id }}" class="form-label sc-requerido">{{ etiqueta }}</label>
+    <input type="date" class="form-control" id="{{ id }}" name="{{ nombre }}"
+           value="{{ valor or '' }}" data-no-futura required>
+    <span class="sc-ayuda">La fecha que figura en el comprobante del banco.</span>
+</div>
+{% endmacro %}
+
+{% macro campo_codigo_transaccion(id, id_estado, valor='') %}
+<div class="col-md-6">
+    <label for="{{ id }}" class="form-label">
+        Número de operación <span class="sc-opcional">(si lo tenés a mano)</span>
+    </label>
+    <input type="text" class="form-control" id="{{ id }}" name="codigo_transaccion"
+           value="{{ valor or '' }}" placeholder="Ej.: 88213045" autocomplete="off"
+           aria-describedby="{{ id_estado }}-ayuda">
+    <span class="sc-campo-estado" id="{{ id_estado }}" aria-live="polite"></span>
+    <span class="sc-ayuda" id="{{ id_estado }}-ayuda">
+        Es el número que el banco le pone a la transferencia. Sirve para que la
+        Cooperadora la encuentre más rápido en el extracto.
+    </span>
+</div>
+{% endmacro %}
+
+
+{# --------------------------------------------------------------------- #}
+{# Cuadro con el estado de cuota (lo completa el JavaScript)              #}
+{# --------------------------------------------------------------------- #}
+{% macro panel_estado_cuota(id) %}
+<div class="col-12" id="{{ id }}" hidden>
+    <div class="sc-aviso sc-aviso-ok">
+        <p class="sc-aviso-titulo mb-2">
+            <i class="bi bi-clipboard-data" aria-hidden="true"></i> Tu estado de cuota
+        </p>
+
+        <div class="sc-medidor">
+            <div class="sc-medidor-barra" role="img"
+                 aria-label="Avance de tu cuota del año">
+                <div class="sc-medidor-verificado" data-medidor="verificado" style="width: 0%"></div>
+                <div class="sc-medidor-revision" data-medidor="revision" style="width: 0%"></div>
+            </div>
+            <div class="sc-medidor-leyenda">
+                <span><i style="background: var(--sc-ok)"></i>
+                    Verificado: <strong data-campo="pagado">$ 0,00</strong></span>
+                <span><i style="background: var(--sc-espera)"></i>
+                    En revisión: <strong data-campo="revision">$ 0,00</strong></span>
+                <span><i style="background: var(--sc-neutro-fondo)"></i>
+                    Falta: <strong data-campo="pendiente">$ 0,00</strong></span>
+                <span class="ms-auto">Cuota del año: <strong data-campo="cuota">$ 0,00</strong></span>
+            </div>
+        </div>
+
+        <p class="mt-3 mb-0" data-campo="resumen"></p>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# --------------------------------------------------------------------- #}
+{# Estado de un pago                                                      #}
+{# --------------------------------------------------------------------- #}
+{% macro estado_pago(estado) %}
+{% set iconos = {
+    'pendiente': 'bi-hourglass-split',
+    'verificado': 'bi-check-circle-fill',
+    'rechazado': 'bi-x-circle-fill',
+    'anulado': 'bi-slash-circle'
+} %}
+{% set textos = {
+    'pendiente': 'En revisión',
+    'verificado': 'Verificado',
+    'rechazado': 'Rechazado',
+    'anulado': 'Anulado'
+} %}
+<span class="sc-estado sc-estado-{{ estado }}">
+    <i class="bi {{ iconos.get(estado, 'bi-circle') }}" aria-hidden="true"></i>
+    {{ textos.get(estado, estado) }}
+</span>
+{% endmacro %}
+
+
+{# --------------------------------------------------------------------- #}
+{# Código de seguimiento con botón de copiado                             #}
+{# --------------------------------------------------------------------- #}
+{% macro codigo_seguimiento(codigo, grande=false) %}
+<span class="sc-codigo {% if grande %}sc-codigo-grande{% endif %}">{{ codigo }}</span>
+<button type="button" class="btn btn-sm btn-outline-secondary ms-2 sc-no-imprimir"
+        data-copiar="{{ codigo }}">
+    <i class="bi bi-clipboard" aria-hidden="true"></i> Copiar
+</button>
+{% endmacro %}

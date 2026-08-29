@@ -1,0 +1,148 @@
+{#
+  Plantilla base: de acá heredan todas las pantallas.
+
+  Bootstrap y los iconos se cargan desde static/vendor/ y no desde internet,
+  como pide la propuesta y RNF-12: si el instituto se queda sin conexión, el
+  sistema tiene que seguir viéndose bien.
+#}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Sistema de gestión contable de la Asociación Cooperadora del ISFT N° 179.">
+
+    {# Color con el que el celular pinta la barra del navegador. Es el mismo
+       azul que usa el sitio de la Cooperadora. #}
+    <meta name="theme-color" content="#0d1f33">
+
+    {# El JavaScript lee este token y lo manda en la cabecera X-CSRFToken #}
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <title>{% block title %}SistCoop 179{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/sistcoop.css') }}">
+    {% block estilos %}{% endblock %}
+</head>
+<body>
+
+<a class="sc-saltar" href="#contenido">Saltar al contenido principal</a>
+
+<nav class="navbar navbar-expand-lg sc-navbar" aria-label="Navegación principal">
+    <div class="container-fluid" style="max-width: 1140px;">
+        <a class="navbar-brand" href="{{ url_for('aportantes.inicio') }}">
+            {# PENDIENTE: cuando la Cooperadora nos pase el logo, este icono
+               se reemplaza por <img src="static/img/logo-blanco.png">. #}
+            <i class="bi bi-bank2 fs-4" aria-hidden="true"></i>
+            <span class="sc-marca-texto">
+                <strong>SistCoop 179</strong>
+                <span>Asociación Cooperadora · ISFT N° 179</span>
+            </span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#menu-principal" aria-controls="menu-principal"
+                aria-expanded="false" aria-label="Mostrar u ocultar el menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="menu-principal">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                {# aria-current marca en qué sección estamos parados #}
+                {% set seccion = request.endpoint %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('aportantes.inicio') }}"
+                       {% if seccion == 'aportantes.inicio' %}aria-current="page"{% endif %}>
+                        <i class="bi bi-house-door" aria-hidden="true"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('aportantes.pagar_cuota') }}"
+                       {% if seccion == 'aportantes.pagar_cuota' %}aria-current="page"{% endif %}>
+                        <i class="bi bi-credit-card" aria-hidden="true"></i> Pagar cuota
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('aportantes.aporte_adicional') }}"
+                       {% if seccion == 'aportantes.aporte_adicional' %}aria-current="page"{% endif %}>
+                        <i class="bi bi-plus-circle" aria-hidden="true"></i> Otro aporte
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('aportantes.solicitud') }}"
+                       {% if seccion == 'aportantes.solicitud' %}aria-current="page"{% endif %}>
+                        <i class="bi bi-file-earmark-text" aria-hidden="true"></i> Solicitudes
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('aportantes.seguimiento') }}"
+                       {% if seccion == 'aportantes.seguimiento' %}aria-current="page"{% endif %}>
+                        <i class="bi bi-search" aria-hidden="true"></i> Consultar
+                    </a>
+                </li>
+
+                {% if current_user.is_authenticated %}
+                <li class="nav-item ms-lg-2">
+                    <a class="nav-link" href="{{ url_for('administracion.panel') }}"
+                       {% if seccion and seccion.startswith('administracion.') %}aria-current="page"{% endif %}>
+                        <i class="bi bi-speedometer2" aria-hidden="true"></i> Panel
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('autenticacion.logout') }}">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Salir
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="sc-contenido" id="contenido">
+
+    {# Los mensajes van acá dentro y no flotando: cuando estaban fijos
+       tapaban los botones de la cabecera del panel. El role="status" hace
+       que un lector de pantalla los lea al aparecer. #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="sc-mensajes" role="status" aria-live="polite" aria-atomic="false">
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar mensaje"></button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="sc-pie">
+    <div>
+        ISFT N° 179 “Dr. Carlos Pellegrini” — Asociación Cooperadora
+        <span class="mx-2" aria-hidden="true">·</span>
+        SistCoop 179
+        {% if ejercicio_vigente %}
+            <span class="mx-2" aria-hidden="true">·</span>
+            Ejercicio {{ ejercicio_vigente.anio }}
+        {% endif %}
+    </div>
+    {% if not current_user.is_authenticated %}
+    <div class="mt-2">
+        <a href="{{ url_for('autenticacion.login') }}">
+            <i class="bi bi-shield-lock" aria-hidden="true"></i> Acceso para la Cooperadora
+        </a>
+    </div>
+    {% endif %}
+</footer>
+
+<script src="{{ url_for('static', filename='vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/sistcoop.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
