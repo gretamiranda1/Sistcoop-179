@@ -81,11 +81,20 @@ def validar_datos(data, pide_apellido=True):
     """Controles comunes a cualquier alta de pago. Devuelve la lista de errores."""
     errores = []
 
-    if not (data.get('nombre') or '').strip():
-        errores.append('Falta el nombre.')
+    nombre = (data.get('nombre') or '').strip()
 
-    if pide_apellido and not (data.get('apellido') or '').strip():
-        errores.append('Falta el apellido.')
+    if not nombre:
+        errores.append('Falta el nombre.')
+    elif not validaciones.validar_nombre(nombre):
+        errores.append('El nombre solo admite caracteres alfabéticos.')
+
+    apellido = (data.get('apellido') or '').strip()
+
+    if pide_apellido:
+        if not apellido:
+            errores.append('Falta el apellido.')
+        elif not validaciones.validar_nombre(apellido):
+            errores.append('El apellido solo admite caracteres alfabéticos.')
 
     dni = (data.get('dni') or '').strip()
     if not dni:
@@ -106,7 +115,7 @@ def validar_datos(data, pide_apellido=True):
     if cuit and not validaciones.validar_cuit(cuit):
         errores.append('El CUIT no es válido. Revisá el número, incluido el '
                        'dígito verificador.')
-
+        
     return errores
 
 

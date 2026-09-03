@@ -59,10 +59,25 @@ def normalizar_personas(filas):
 
         nombre = (fila.get('nombre') or '').strip()
         apellido = (fila.get('apellido') or '').strip()
+
         if not nombre or not apellido:
-            errores.append('Persona {}: faltan el nombre y/o el apellido.'.format(numero))
+            errores.append(
+                'Persona {}: faltan el nombre y/o el apellido.'.format(numero)
+            )
             continue
 
+        if not validaciones.validar_nombre(nombre):
+            errores.append(
+                'Persona {}: el nombre solo admite caracteres alfabéticos.'.format(numero)
+            )
+            continue
+
+        if not validaciones.validar_nombre(apellido):
+            errores.append(
+                'Persona {}: el apellido solo admite caracteres alfabéticos.'.format(numero)
+            )
+            continue
+        
         dnis_ya_vistos.append(dni)
         personas.append({
             'dni': dni,
