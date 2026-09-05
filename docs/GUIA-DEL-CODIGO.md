@@ -72,6 +72,7 @@ sistcoop179/
 │   ├── modelos/           las TABLAS      (no modifican nada)
 │   ├── servicios/         las REGLAS      (acá se modifica todo)
 │   ├── controladores/     las RUTAS       (leen el formulario y muestran)
+│   ├── seguridad/         permisos de acceso (decorador requiere_rol)
 │   ├── utilidades/        funciones sueltas sin base de datos
 │   ├── vistas/            las plantillas HTML
 │   ├── static/            css, javascript y Bootstrap
@@ -105,6 +106,7 @@ sistcoop179/
 | `controladores/administracion.py` | El panel de la Cooperadora: 12 rutas |
 | `controladores/autenticacion.py` | Entrar y salir |
 | `controladores/principal.py` | La raíz y el chequeo de salud |
+| `seguridad/permisos.py` | El decorador `requiere_rol()` |
 | `utilidades/validaciones.py` | DNI, CUIT, fechas, importes |
 | `utilidades/archivos.py` | Guardar y controlar el comprobante |
 | `utilidades/limite_peticiones.py` | Tope de consultas por IP |
@@ -257,6 +259,33 @@ Por eso el token está en el `<head>` de `base.html`:
 
 y `sistcoop.js` lo lee y lo manda en cada consulta. Si faltara, el servidor
 contestaría **400** y las validaciones en vivo dejarían de andar sin avisar.
+
+### 5.7 ¿Cómo se restringe una vista del panel a ciertos roles?
+
+Con el decorador `@requiere_rol(...)` de `app/seguridad/permisos.py`, arriba
+de `@login_required`:
+
+```python
+@administracion_bp.route('/auditoria')
+@requiere_rol('admin', 'tesorera')
+@login_required
+def auditoria():
+    ...
+```
+
+Antes cada vista repetía a mano un `if` contra `current_user.rol` al
+principio de la función, y era fácil olvidárselo en una vista nueva: quedaba
+accesible a cualquier usuario logueado. Con el decorador, una vista sin
+`@requiere_rol` es visible a simple vista al leer la lista de rutas.
+
+Sin sesión iniciada, `@requiere_rol` se comporta igual que `@login_required`
+(manda al login). Con sesión pero sin ninguno de los roles pasados, avisa por
+flash y redirige al portal del aportante. El mensaje del flash es
+`'No tenés permisos para hacer eso.'` salvo que se pase uno distinto:
+`@requiere_rol('admin', mensaje='...')`.
+
+Toda vista nueva de `controladores/administracion.py` tiene que llevar este
+decorador.
 
 ---
 

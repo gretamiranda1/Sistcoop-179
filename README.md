@@ -75,8 +75,11 @@ sistcoop179/
 ├── run.py                 Servidor de desarrollo
 ├── requirements.txt
 ├── .env.example
+├── requirements-prod.txt
 └── .gitignore
 ```
+
+En desarrollo se instala `requirements.txt`; en el servidor, `requirements-prod.txt`.
 
 ## 5. Equipo
 
