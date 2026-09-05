@@ -19,13 +19,13 @@ Contempla cuatro roles: **Aportante** (portal público de carga y consulta),
 
 ## 2. Estado por incremento
 
-| Incremento | Alcance | Estado |
-| ---------- | ------- | ------ |
-| 1 | Diseño técnico, modelo de datos y arquitectura 
+| Incremento | Alcance |
+| ---------- | ------- |
+| 1 | Diseño técnico, modelo de datos y arquitectura |
 | 2 | Módulo Aportante: carga de pagos y comprobantes |
-| 3 | Módulo Cooperadora y Preceptoría 
-| 4 | Módulo Tesorería, conciliación y reportes 
-| 5 | Aceptación, capacitación y despliegue 
+| 3 | Módulo Cooperadora y Preceptoría |
+| 4 | Módulo Tesorería, conciliación y reportes |
+| 5 | Aceptación, capacitación y despliegue |
 
 
 ## 3. Stack tecnológico
@@ -49,21 +49,27 @@ Contempla cuatro roles: **Aportante** (portal público de carga y consulta),
 ```
 sistcoop179/
 ├── app/
-│   ├── modelos/           Las TABLAS. Describen la base y responden
-│   │                      consultas. No modifican nada
-│   ├── servicios/         Las REGLAS. Acá se modifica todo: alta,
-│   │                      verificación y rechazo de pagos, reparto grupal,
-│   │                      saldos, fondos y auditoría
+│   ├── modelos/           Las TABLAS: aportantes, auditoria, carreras,
+│   │                      ejercicios, fondos, pagos, pagos_grupales,
+│   │                      saldos, solicitudes, usuarios. No modifican nada
+│   ├── servicios/         Las REGLAS: alta, verificación y rechazo de
+│   │                      pagos, reparto grupal, saldos, fondos,
+│   │                      ejercicios y auditoría
 │   ├── controladores/     Las RUTAS por blueprint: autenticación,
-│   │                      aportantes, administración, principal
+│   │                      aportantes, administración, api (JSON), principal
+│   ├── formularios/       Un FlaskForm por área: cuota, adicional,
+│   │                      solicitudes, autenticación, administración
+│   ├── seguridad/         El decorador @requiere_rol
 │   ├── utilidades/        Funciones sueltas sin base de datos: validaciones
-│   │                      (DNI/CUIT/fechas), archivos, límite de peticiones
+│   │                      (DNI/CUIT/fechas), archivos, límite de peticiones,
+│   │                      datos de la petición HTTP (ip / user-agent)
 │   ├── vistas/            Plantillas Jinja2 por rol (admin/, aportante/,
 │   │                      auth/, errores/) + base.html + _componentes.html
 │   ├── static/
 │   │   ├── css/           Hoja de estilos propia
 │   │   ├── js/            JavaScript propio
 │   │   └── vendor/        Bootstrap 5 y Bootstrap Icons (locales)
+│   ├── constantes.py      Valores compartidos por más de un módulo
 │   ├── config.py          Configuración por entorno
 │   └── extensions.py      Instancias de las extensiones de Flask
 ├── migrations/            Flask-Migrate/Alembic: historial de esquema
@@ -71,8 +77,7 @@ sistcoop179/
 ├── scripts/               init_db, agregar_carreras, limpiar_datos
 ├── tests/                 pytest: conftest.py + casos por área
 ├── instance/              Base SQLite y comprobantes subidos (NO versionado)
-├── docs/                  Guía del código, bitácoras, pruebas manuales e
-│                          informes de avance
+├── docs/                  Guía del código y pendientes
 ├── run.py                 Servidor de desarrollo
 ├── requirements.txt
 ├── requirements-dev.txt

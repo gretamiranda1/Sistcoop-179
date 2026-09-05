@@ -67,21 +67,37 @@ sistcoop179/
 ├── app/
 │   ├── __init__.py        create_app(): arma la aplicación
 │   ├── config.py          configuración por entorno
+│   ├── constantes.py      valores compartidos por más de un módulo
 │   ├── extensions.py      las extensiones de Flask (db, login, csrf)
 │   │
 │   ├── modelos/           las TABLAS      (no modifican nada)
 │   ├── servicios/         las REGLAS      (acá se modifica todo)
 │   ├── controladores/     las RUTAS       (leen el formulario y muestran)
+│   ├── formularios/       un FlaskForm por área (valida antes de llamar
+│   │                      al servicio; ver sección 5.8)
 │   ├── seguridad/         permisos de acceso (decorador requiere_rol)
 │   ├── utilidades/        funciones sueltas sin base de datos
 │   ├── vistas/            las plantillas HTML
-│   ├── static/            css, javascript y Bootstrap
-│   └── data/              las carreras del instituto
+│   └── static/            css, javascript y Bootstrap
 │
-├── scripts/               tareas de consola (crear la base, probar, migrar)
-├── docs/                  esta guía, las bitácoras y los informes
+├── migrations/            Flask-Migrate/Alembic: el historial del esquema
+├── seeds/                 datos de referencia (las carreras del instituto)
+├── scripts/               tareas de consola (crear la base, agregar datos)
+├── tests/                 pytest
+├── docs/                  esta guía y los pendientes
 └── instance/              la base SQLite y los comprobantes (NO se sube)
 ```
+
+La carpeta de plantillas se llama `app/vistas/`, no `templates/` (el valor
+por defecto de Flask): `create_app()` la configura a mano con
+`Flask(__name__, template_folder='vistas')`. No se renombra ni se tocan los
+`render_template()` para "corregirla".
+
+`migrations/` es código generado por Flask-Migrate: `migrations/env.py`,
+`script.py.mako` y el `alembic.ini` quedan en inglés, tal como los genera la
+herramienta. Sólo se traduce o comenta lo que agrega el equipo (por ejemplo,
+el manejo de `PRAGMA foreign_keys` dentro de `env.py`, o el contenido de
+cada archivo en `migrations/versions/`).
 
 ### Los archivos, uno por uno
 
@@ -101,15 +117,24 @@ sistcoop179/
 | **`servicios/pagos_grupales.py`** | **El reparto de una transferencia grupal** |
 | `servicios/saldos.py` | Recalcular el saldo, entregar la libreta |
 | `servicios/fondos.py` | Mover el saldo de un fondo |
+| `servicios/ejercicios.py` | Cerrar el ejercicio vigente y abrir el siguiente |
 | `servicios/auditoria.py` | Escribir un renglón de auditoría |
-| **`controladores/aportantes.py`** | **El portal público: 12 rutas** |
-| `controladores/administracion.py` | El panel de la Cooperadora: 12 rutas |
+| **`controladores/aportantes.py`** | **El portal público** |
+| `controladores/administracion.py` | El panel de la Cooperadora |
+| `controladores/api.py` | Las cuatro validaciones en vivo (JSON) del portal |
 | `controladores/autenticacion.py` | Entrar y salir |
 | `controladores/principal.py` | La raíz y el chequeo de salud |
+| `formularios/cuota.py` | Formulario de cuota individual y grupal |
+| `formularios/adicional.py` | Formulario de aporte adicional |
+| `formularios/solicitudes.py` | Formulario de pedido de fondos y de libreta |
+| `formularios/autenticacion.py` | Formulario de login |
+| `formularios/administracion.py` | Formularios de cuota y de ejercicio nuevo |
+| `formularios/_comunes.py` | Validadores de WTForms que envuelven `validaciones.py` |
 | `seguridad/permisos.py` | El decorador `requiere_rol()` |
 | `utilidades/validaciones.py` | DNI, CUIT, fechas, importes |
 | `utilidades/archivos.py` | Guardar y controlar el comprobante |
 | `utilidades/limite_peticiones.py` | Tope de consultas por IP |
+| `utilidades/peticion.py` | IP y User-Agent del pedido actual |
 
 Los tres en negrita son los que hay que leer. El resto se entiende solo.
 
@@ -123,13 +148,15 @@ aparece en el fondo.
 **Paso 1 — El navegador manda el formulario a `/aportante/cuota`.**
 
 **Paso 2 — `controladores/aportantes.py` → `procesar_cuota_individual()`**
-Arma un diccionario `data` con lo que vino del formulario, guarda el archivo
-del comprobante y llama al servicio. No valida nada por su cuenta.
+Instancia `FormularioCuotaIndividual` y llama a `validate_on_submit()` (si
+falla, flashea cada error y vuelve a mostrar la pantalla). Con el
+formulario ya validado, arma un diccionario `data` con los valores tipados
+(`Decimal`, `date`), guarda el archivo del comprobante y llama al servicio.
 
 **Paso 3 — `servicios/pagos.py` → `crear_pago_de_cuota(data)`**
-Valida, busca o crea el aportante, crea el `Pago` en estado `pendiente`,
-crea el saldo si no existía (en cero), escribe el renglón de auditoría y
-hace `commit()`.
+Vuelve a validar con `validar_datos()` (ver 5.8), busca o crea el
+aportante, crea el `Pago` en estado `pendiente`, crea el saldo si no
+existía (en cero), escribe el renglón de auditoría y hace `commit()`.
 
 **Paso 4 — El aportante ve la pantalla de confirmación** con su código
 `SC-XXXXXXXX`. Hasta acá **no se movió ni un peso**.
@@ -170,7 +197,7 @@ servicios/pagos.py :: verificar_pago()
 
 ---
 
-## 5. Las seis cosas que confunden la primera vez
+## 5. Las nueve cosas que confunden la primera vez
 
 ### 5.1 ¿Por qué existe `create_app()` en vez de `app = Flask(__name__)`?
 
@@ -287,6 +314,39 @@ flash y redirige al portal del aportante. El mensaje del flash es
 Toda vista nueva de `controladores/administracion.py` tiene que llevar este
 decorador.
 
+### 5.8 ¿Por qué hay un FlaskForm Y `validar_datos()` en el servicio?
+
+`app/formularios/` controla el mismo DNI, CUIT, importe y fecha que antes
+sólo controlaba `servicios/pagos.py::validar_datos()`, pero no lo duplica:
+cada validador de WTForms (`app/formularios/_comunes.py`) llama a las
+mismas funciones de `utilidades/validaciones.py`. La regla de qué es un DNI
+válido sigue estando en un solo lugar; lo que cambió es *cuándo* se
+controla.
+
+El formulario corta antes: si el aportante escribe mal el DNI, lo ve al
+toque, con el mismo mensaje que antes armaba `validar_datos()`.
+`validar_datos()` se queda en el servicio porque no todo lo que crea un
+pago pasa por un formulario web — un script, una carga masiva, una
+integración futura le pueden pasar un diccionario directamente a
+`crear_pago_de_cuota()`. El servicio no le delega su propia integridad a
+una capa de afuera que podría no estar.
+
+Los controladores le pasan al servicio datos ya tipados (`Decimal` para
+importes, `date` para fechas), no strings: el formulario ya los validó, así
+que el servicio no tiene que volver a parsear texto.
+
+### 5.9 ¿Por qué las validaciones en vivo del portal están en `controladores/api.py`?
+
+Son cuatro rutas que sólo devuelven JSON (validar DNI, validar CUIT, avisar
+si un código de operación ya se usó, consultar el estado de cuota): no son
+pantallas, son la API que consulta el JavaScript de los formularios
+(`sistcoop.js`) mientras el aportante escribe. Viven en su propio blueprint
+(`api_bp`) para no mezclarlas con las vistas que devuelven HTML.
+
+Las URL no cambiaron: `api_bp` se registra con el mismo
+`url_prefix='/aportante'` que `aportantes_bp`, así que siguen siendo
+`/aportante/api/validar-dni`, etc.
+
 ---
 
 ## 6. El pago grupal, con números
@@ -336,8 +396,7 @@ python run.py
 pytest
 ```
 
-Tienen que pasar todos los tests. Además hay una lista de controles a mano
-en `docs/PRUEBAS-MANUALES.md`.
+Tienen que pasar todos los tests.
 
 **Agregar un campo a una tabla**
 
@@ -378,7 +437,7 @@ cuota que votó la asamblea.
 | **Saldo** | Cuánto lleva pagado una persona en un ejercicio |
 | **Verificar** | Confirmar contra el banco. Es lo único que acredita |
 | **Código de seguimiento** | El `SC-XXXXXXXX` con el que se consulta un pago |
-| **Blueprint** | Un grupo de rutas de Flask. Tenemos cuatro |
+| **Blueprint** | Un grupo de rutas de Flask. Tenemos cinco |
 | **Modelo** | Una clase que representa una tabla |
 | **Servicio** | Una función que aplica una regla del negocio |
 | **Migración** | Cambiarle la estructura a una base que ya tiene datos |

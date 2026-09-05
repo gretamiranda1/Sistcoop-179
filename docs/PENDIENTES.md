@@ -1,16 +1,117 @@
 # Pendientes
 
-Bugs y ambigüedades detectados durante trabajos de reorganización, anotados
-para no perder el hilo pero sin corregir (fuera del alcance de esa tarea).
+## Por resolver
 
-## MAX_CONTENT_LENGTH del .env.example no se usa
+### 1. Verificar las migraciones contra un PostgreSQL vacío
+
+Las cuatro migraciones de `migrations/versions/` se escribieron y se
+probaron sólo contra SQLite (el motor de desarrollo). Los índices únicos
+parciales (`sqlite_where=...` / `postgresql_where=...` en
+`uq_fondos_capital_activo` y `uq_ejercicio_vigente`) y los `CHECK` de la
+migración `909b3621ff6e` se escribieron pensando en los dos motores, pero
+los tipos (`Numeric`, `JSON`, `Boolean`) y el modo `render_as_batch` se
+comportan distinto entre SQLite y PostgreSQL, y Alembic puede generar SQL
+válido para uno que no lo sea (o no haga falta) en el otro.
+
+Antes de desplegar a producción hay que:
+
+1. Levantar un PostgreSQL vacío (local o de prueba).
+2. Apuntar `DATABASE_URL` ahí y correr `flask db upgrade`.
+3. Confirmar que las 12 tablas, sus FK, sus `UNIQUE`, sus índices parciales
+   y sus `CHECK` quedan iguales a los de SQLite (`\d+ nombre_tabla` en
+   `psql`, o `inspect(db.engine)`).
+
+### 2. `utilidades/limite_peticiones.py` no sirve con más de un worker
+
+El contador de consultas por IP vive en un diccionario en memoria
+(`_consultas`), del proceso de Python. En desarrollo, con un solo proceso,
+funciona. En producción el stack es Gunicorn + Nginx (ver README): si
+Gunicorn se levanta con varios workers, cada uno tiene su propio
+diccionario, sin compartir nada entre sí.
+
+Un límite de "10 intentos de login por IP cada 5 minutos" con 4 workers
+permite en la práctica hasta 40, porque cada request cae en un worker al
+azar y cada worker cuenta por su cuenta. El límite deja de cumplir lo que
+promete (RNF-02, RNF-03) apenas se corre con más de un worker.
+
+Corrección: mover el contador a un almacén compartido entre procesos
+(Redis, o una tabla en la base) antes de desplegar con más de un worker de
+Gunicorn.
+
+### 3. `pagos.cuit`: ¿es del aportante o de quien transfiere?
+
+La columna existe (`app/modelos/pagos.py`) y se completa en los
+formularios de aporte adicional ("CUIT, si aporta una empresa"), pero el
+cliente nunca definió qué representa exactamente:
+
+- ¿el CUIT del propio `Aportante` (una forma alternativa de identificarlo,
+  además del DNI)?
+- ¿o el CUIT de un tercero (una empresa) que hizo la transferencia en
+  nombre o a beneficio del aportante, que puede ser una persona distinta?
+
+La diferencia importa para conciliar contra el extracto del banco y para
+cualquier reporte que agrupe aportes por quien realmente puso la plata.
+Hoy el dato se guarda pero no se usa para nada más que mostrarlo.
+
+### 4. `pagos_grupales_detalle.estado`: ¿se puede verificar parcialmente una transferencia grupal?
+
+La columna existe con su propio estado (`pendiente`, `verificado`,
+`rechazado`) por persona, pero `servicios/pagos_grupales.py` siempre la
+actualiza en bloque, junto con el estado de todo el `PagoGrupal`
+(`verificar_pago_grupal()` y `rechazar_pago_grupal()` recorren *todos* los
+detalles y *todos* los pagos de la transferencia y los pasan al mismo
+estado). No hay ningún camino en el código para verificar o rechazar a una
+sola persona del grupo sin tocar a las demás.
+
+El cliente no definió si esto es el diseño definitivo (una transferencia
+grupal se verifica entera o no se verifica) o si en algún momento hace
+falta poder aceptar a algunas personas del grupo y rechazar a otras por
+separado. Mientras no se defina, la columna por-persona sugiere una
+granularidad que el sistema no ofrece.
+
+### 5. Normalización pendiente: `carreras.anios` y `aportantes.anio`
+
+`Carrera.anios` (`app/modelos/carreras.py`) guarda los años que dicta esa
+carrera como texto separado por comas (por ejemplo `'1°,2°,3°'`): no es un
+valor atómico, viola 1FN, y para usarlo hay que parsearlo a mano en algún
+lado.
+
+`Aportante.anio` (`app/modelos/aportantes.py`) es una columna de texto
+libre (`String(5)`) sin ninguna restricción: no hay manera de que la base
+impida guardar un año que no está en la lista de esa carrera, ni siquiera
+un valor que no esté en `app/constantes.py::ANIOS` (`['1°', '2°', '3°']`,
+la misma lista, escrita una tercera vez para poblar los `<select>` de los
+formularios).
+
+Corrección: una tabla `carreras_anios` (`carrera_id`, `anio`) con una fila
+por año que dicta cada carrera, y `aportantes.anio` pasa a ser una clave
+foránea a esa tabla en lugar de texto suelto. Fuera de alcance de los
+bloques anteriores porque toca el modelo de datos de aportantes y carreras,
+no sólo agrega una restricción sobre lo que ya hay.
+
+### 6. `MAX_CONTENT_LENGTH` del `.env.example` no se usa
 
 `.env.example` documenta una variable `MAX_CONTENT_LENGTH` (bytes, 16 MB),
 pero `app/config.py` nunca la lee con `os.getenv`: el límite queda fijo en
 `TAMANIO_MAXIMO_COMPROBANTE` (`app/constantes.py`) sin importar lo que diga
 el `.env`. Detectado en el Bloque 1 (constantes compartidas).
 
-## Bloque 4 — decisiones de ambigüedad, no bugs
+### 7. `nuevo_ejercicio` sigue sin controlar `fecha_asamblea`
+
+Si `fecha_asamblea` viene con un formato inválido, `date.fromisoformat()`
+tira una excepción sin capturar (`app/controladores/administracion.py`).
+Es un bug preexistente al Bloque 4, detectado ahí pero fuera de ese
+alcance: corregirlo habría cambiado el comportamiento actual, que es lo
+que ese bloque pedía no hacer.
+
+---
+
+## Decisiones de ambigüedad ya tomadas (contexto, no bugs)
+
+Registro de las veces que hubo más de una lectura posible de un pedido y
+se eligió una sin volver a preguntar, para que quede el porqué.
+
+### Bloque 4
 
 - **URL de `app/controladores/api.py`**: la consigna decía que los cuatro
   endpoints quedan en `/api/validar-dni` etc. y, en la misma frase, que "las
@@ -33,36 +134,8 @@ el `.env`. Detectado en el Bloque 1 (constantes compartidas).
   formularios públicos. Repliqué esa regla tal cual para no cambiarle el
   mensaje a la Cooperadora; no es la misma validación que la de
   `validar_importe()`, así que no correspondía reusar esa función ahí.
-- **`nuevo_ejercicio` sigue sin controlar `fecha_asamblea`**: si viene con un
-  formato inválido, `date.fromisoformat()` iba a tirar una excepción sin
-  capturar antes del Bloque 4, y sigue igual (no es parte de lo que pedía
-  este bloque, y corregirlo cambiaría el comportamiento actual).
 
-## Bloque 5 — migraciones contra PostgreSQL
-
-`migrations/versions/1321d039f458_estado_inicial.py` se generó con
-`flask db migrate` contra SQLite (es el motor de desarrollo). Revisé a mano
-que estén todas las claves foráneas y todos los `UniqueConstraint` de los
-modelos, incluida la restricción con nombre `uq_saldo_aportante_ejercicio`
-de `SaldoAportante`, y coinciden.
-
-Lo que NO se probó todavía es correr esta migración contra una base
-PostgreSQL vacía real: los tipos (`Numeric`, `JSON`, `Boolean`) y el modo
-`render_as_batch` se comportan distinto entre motores, y Alembic puede
-generar SQL válido para SQLite que no sea válido (o no haga falta) en
-PostgreSQL. Antes de desplegar a producción hay que:
-
-1. Levantar un PostgreSQL vacío (local o de prueba).
-2. Apuntar `DATABASE_URL` ahí y correr `flask db upgrade`.
-3. Confirmar que las 12 tablas, sus FK y sus `UNIQUE` quedan iguales a los
-   de SQLite (`\d+ nombre_tabla` en `psql`, o `inspect(db.engine)`).
-
-Esto sigue valiendo para las migraciones del Bloque 6: los índices únicos
-parciales (`sqlite_where=...` / `postgresql_where=...`) y los `CHECK` se
-escribieron pensando en los dos motores, pero sólo se probaron corriendo
-contra SQLite.
-
-## Bloque 6 — las tres restricciones de 6.3 quedaron en la base
+### Bloque 6 — las tres restricciones de 6.3 quedaron en la base
 
 Los tres supuestos (un fondo de capital activo, un fondo por carrera, un
 ejercicio vigente) se probaron como índices únicos —dos de ellos parciales,
@@ -75,7 +148,7 @@ anterior y abrir el nuevo no dependa de que cada llamador se acuerde de
 hacerlo en el orden correcto — es una capa extra sobre el índice, no un
 reemplazo.
 
-### Dos cosas para tener en cuenta en la próxima migración
+### Notas operativas para futuras migraciones (Bloque 6)
 
 - **`migrations/env.py` apaga `PRAGMA foreign_keys` durante la migración**
   (sólo en esa conexión, sólo mientras corre `flask db migrate`/`upgrade`).
