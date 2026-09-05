@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 
 from app.extensions import db
+from app.formularios.autenticacion import FormularioLogin
 from app.modelos.usuarios import Usuario
 from app.servicios import auditoria as servicio_auditoria
 from app.utilidades.limite_peticiones import excede_limite
@@ -17,6 +18,8 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('administracion.panel'))
 
+    formulario = FormularioLogin()
+
     if request.method == 'POST':
         # Tope de intentos por IP, para que no se pueda ir probando
         # contraseñas de a miles
@@ -24,8 +27,8 @@ def login():
             flash('Demasiados intentos de acceso. Esperá unos minutos.', 'warning')
             return render_template('auth/login.html')
 
-        username = (request.form.get('username') or '').strip()
-        password = request.form.get('password') or ''
+        username = (formulario.username.data or '').strip()
+        password = formulario.password.data or ''
         ip, user_agent = ip_y_user_agent()
 
         usuario = Usuario.query.filter_by(username=username).first()

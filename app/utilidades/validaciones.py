@@ -137,11 +137,27 @@ def validar_importe(importe):
 # FECHAS
 # ============================================
 
-def validar_fecha(fecha_texto):
-    """Fecha en formato AAAA-MM-DD. Devuelve (es_valida, mensaje_de_error)."""
+def _a_fecha_o_none(fecha_texto):
+    """Convierte 'AAAA-MM-DD' a date. Si ya es una date, la devuelve tal cual.
+
+    Los formularios web (app/formularios/) ya convierten el texto validado a
+    date antes de llamarlo al servicio; los llamadores que no pasan por un
+    formulario (scripts, cargas masivas) siguen mandando el texto crudo. Esta
+    función es la que hace que las de más abajo sirvan para los dos casos sin
+    repetir la conversión en cada una.
+    """
+    if isinstance(fecha_texto, date):
+        return fecha_texto
     try:
-        fecha = datetime.strptime(fecha_texto, '%Y-%m-%d').date()
+        return datetime.strptime(fecha_texto, '%Y-%m-%d').date()
     except (ValueError, TypeError):
+        return None
+
+
+def validar_fecha(fecha_texto):
+    """Fecha en formato AAAA-MM-DD, o ya como date. Devuelve (es_valida, mensaje_de_error)."""
+    fecha = _a_fecha_o_none(fecha_texto)
+    if fecha is None:
         return False, 'La fecha no tiene un formato válido.'
 
     if fecha.year < 1900 or fecha.year > 2100:
@@ -160,7 +176,7 @@ def validar_fecha_transferencia(fecha_texto):
     if not valida:
         return False, mensaje
 
-    fecha = datetime.strptime(fecha_texto, '%Y-%m-%d').date()
+    fecha = _a_fecha_o_none(fecha_texto)
     hoy = date.today()
 
     if fecha > hoy:
@@ -175,7 +191,4 @@ def validar_fecha_transferencia(fecha_texto):
 
 def texto_a_fecha(fecha_texto):
     """Pasa un 'AAAA-MM-DD' a fecha. Si no se puede, devuelve la de hoy."""
-    try:
-        return datetime.strptime(fecha_texto, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return date.today()
+    return _a_fecha_o_none(fecha_texto) or date.today()

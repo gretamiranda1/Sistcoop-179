@@ -78,7 +78,18 @@ def comprobante_ya_usado(huella):
 # ============================================
 
 def validar_datos(data, pide_apellido=True):
-    """Controles comunes a cualquier alta de pago. Devuelve la lista de errores."""
+    """Controles comunes a cualquier alta de pago. Devuelve la lista de errores.
+
+    Esto se vuelve a controlar acá aunque ya haya un formulario web
+    (app/formularios/) que valida lo mismo antes de llegar a este punto: no
+    es duplicación, es la integridad de esta función para quien la llame sin
+    pasar por un formulario (un script, una carga masiva, una integración
+    futura). El formulario existe para mostrarle el error al aportante antes;
+    el servicio no le delega su propia integridad a esa capa de afuera. Las
+    dos capas llaman a las mismas funciones de utilidades/validaciones.py, así
+    que la regla de qué es un DNI o un importe válido sigue estando en un solo
+    lugar.
+    """
     errores = []
 
     nombre = (data.get('nombre') or '').strip()

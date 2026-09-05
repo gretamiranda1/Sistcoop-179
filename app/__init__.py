@@ -28,11 +28,15 @@ def create_app(config_name='development'):
     from app.controladores.autenticacion import autenticacion_bp
     from app.controladores.aportantes import aportantes_bp
     from app.controladores.administracion import administracion_bp
+    from app.controladores.api import api_bp
     from app.controladores.principal import principal_bp
 
     app.register_blueprint(autenticacion_bp, url_prefix='/auth')
     app.register_blueprint(aportantes_bp, url_prefix='/aportante')
     app.register_blueprint(administracion_bp, url_prefix='/admin')
+    # Mismo prefijo que aportantes_bp: las URL de estos cuatro endpoints no
+    # cambian (/aportante/api/...), sólo el archivo donde vive el código.
+    app.register_blueprint(api_bp, url_prefix='/aportante')
     app.register_blueprint(principal_bp)
 
     from app.modelos.usuarios import Usuario

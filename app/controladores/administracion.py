@@ -25,6 +25,7 @@ from app.modelos.pagos import Pago
 from app.modelos.pagos_grupales import PagoGrupal
 from app.modelos.saldos import SaldoAportante
 from app.modelos.solicitudes import SolicitudFondo
+from app.formularios.administracion import FormularioEditarCuota, FormularioNuevoEjercicio
 from app.seguridad.permisos import requiere_rol
 from app.servicios import auditoria as servicio_auditoria
 from app.servicios import pagos as servicio_pagos
@@ -253,13 +254,12 @@ def editar_cuota():
         flash(motivo, 'danger')
         return redirect(url_for('administracion.panel'))
 
-    try:
-        nuevo_monto = round(float(request.form.get('cuota')), 2)
-        if nuevo_monto <= 0:
-            raise ValueError
-    except (ValueError, TypeError):
-        flash('El monto de la cuota no es válido.', 'danger')
+    formulario = FormularioEditarCuota()
+    if not formulario.validate_on_submit():
+        flash(formulario.cuota.errors[0], 'danger')
         return redirect(url_for('administracion.panel'))
+
+    nuevo_monto = round(float(formulario.cuota.data), 2)
 
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
@@ -292,14 +292,13 @@ def editar_cuota():
 @login_required
 def nuevo_ejercicio():
     """Cierra el ejercicio vigente y abre el siguiente"""
-    try:
-        anio = int(request.form.get('anio'))
-        cuota = round(float(request.form.get('cuota')), 2)
-        if cuota <= 0:
-            raise ValueError
-    except (ValueError, TypeError):
+    formulario = FormularioNuevoEjercicio()
+    if not formulario.validate_on_submit():
         flash('Año o cuota inválidos.', 'danger')
         return redirect(url_for('administracion.panel'))
+
+    anio = int(formulario.anio.data)
+    cuota = round(float(formulario.cuota.data), 2)
 
     if Ejercicio.query.filter_by(anio=anio).first():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
@@ -311,7 +310,7 @@ def nuevo_ejercicio():
         anterior.cerrado = True
         db.session.add(anterior)
 
-    fecha_asamblea = request.form.get('fecha_asamblea')
+    fecha_asamblea = formulario.fecha_asamblea.data
 
     nuevo = Ejercicio(
         anio=anio,
