@@ -179,7 +179,7 @@ def buscar_o_crear_aportante(data):
 # ALTA DE PAGOS
 # ============================================
 
-def crear_pago_de_cuota(data, request=None):
+def crear_pago_de_cuota(data, ip=None, user_agent=None):
     """Registra un pago de la cuota de socio (RF-01, RF-02).
 
     Devuelve (pago, saldo). El saldo se devuelve para poder mostrarle al
@@ -237,14 +237,15 @@ def crear_pago_de_cuota(data, request=None):
             'importe': str(pago.importe),
             'solicita_libreta': pago.solicita_libreta,
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()
     return pago, saldo
 
 
-def crear_pago_publico(data, request=None):
+def crear_pago_publico(data, ip=None, user_agent=None):
     """Registra un aporte que no es cuota de socio (RF-09, RF-11).
 
     Sirve para donaciones, sponsors, aportes al fondo de una carrera y el
@@ -300,7 +301,8 @@ def crear_pago_publico(data, request=None):
             'importe': str(pago.importe),
             'fondo': fondo.nombre,
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()
@@ -312,7 +314,7 @@ def crear_pago_publico(data, request=None):
 # ============================================
 
 def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
-                   request=None):
+                   ip=None, user_agent=None):
     """La Cooperadora confirma que el dinero entró (RF-03).
 
     Este es el ÚNICO momento en que un pago suma. Pasan tres cosas, en este
@@ -357,14 +359,15 @@ def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
             'importe': str(pago.importe),
             'numero_recibo': numero_recibo,
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()
     return pago
 
 
-def rechazar_pago(pago_id, usuario_id, motivo, request=None):
+def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None):
     """El pago no coincide con el extracto del banco.
 
     Si ya estaba verificado hay que dar marcha atrás con el movimiento del
@@ -401,7 +404,8 @@ def rechazar_pago(pago_id, usuario_id, motivo, request=None):
         tabla='pagos',
         registro_id=pago.id,
         detalle={'codigo_seguimiento': pago.codigo_seguimiento, 'motivo': motivo},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()

@@ -183,7 +183,7 @@ def repartir_a_mano(personas, importe_total, montos):
 # ALTA DEL PAGO GRUPAL
 # ============================================
 
-def procesar_pago_grupal(data, request=None):
+def procesar_pago_grupal(data, ip=None, user_agent=None):
     """Registra una transferencia grupal y su reparto.
 
     Devuelve (pago_grupal, resumen).
@@ -312,7 +312,8 @@ def procesar_pago_grupal(data, request=None):
             'tipo_distribucion': data.get('tipo_distribucion', 'auto'),
             'excedente_a_fondo': str(excedente),
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()
@@ -348,7 +349,7 @@ def registrar_excedente(pago_grupal, aportante, fondo, fecha, monto, huella):
 # VERIFICACIÓN Y RECHAZO
 # ============================================
 
-def verificar_pago_grupal(pago_grupal_id, usuario_id, request=None):
+def verificar_pago_grupal(pago_grupal_id, usuario_id, ip=None, user_agent=None):
     """Verifica la transferencia y todos los pagos que salieron de ella.
 
     Hay que recorrer los pagos uno por uno: si sólo marcáramos la
@@ -380,14 +381,15 @@ def verificar_pago_grupal(pago_grupal_id, usuario_id, request=None):
         registro_id=grupal.id,
         detalle={'codigo_seguimiento': grupal.codigo_seguimiento,
                  'importe_total': str(grupal.importe_total)},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()
     return grupal
 
 
-def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, request=None):
+def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, ip=None, user_agent=None):
     """Rechaza la transferencia y todos los pagos que salieron de ella."""
     grupal = PagoGrupal.query.get(pago_grupal_id)
     if not grupal:
@@ -414,7 +416,8 @@ def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, request=None):
         tabla='pagos_grupales',
         registro_id=grupal.id,
         detalle={'codigo_seguimiento': grupal.codigo_seguimiento, 'motivo': motivo},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
 
     db.session.commit()

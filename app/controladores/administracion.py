@@ -33,6 +33,7 @@ from app.servicios import saldos as servicio_saldos
 from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
+from app.utilidades.peticion import ip_y_user_agent
 
 administracion_bp = Blueprint('administracion', __name__)
 
@@ -78,13 +79,15 @@ def panel():
 @requiere_rol('admin', 'asistente')
 @login_required
 def verificar_pago(pago_id):
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_pagos.verificar_pago(
             pago_id,
             current_user.id,
             numero_recibo=(request.form.get('numero_recibo') or '').strip() or None,
             serie_recibo=(request.form.get('serie_recibo') or '').strip() or None,
-            request=request
+            ip=ip,
+            user_agent=user_agent
         )
         flash('Pago {} verificado. El importe se acreditó en {}.'.format(
             pago.codigo_seguimiento, pago.fondo.nombre), 'success')
@@ -99,9 +102,11 @@ def verificar_pago(pago_id):
 @requiere_rol('admin', 'asistente')
 @login_required
 def rechazar_pago(pago_id):
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_pagos.rechazar_pago(
-            pago_id, current_user.id, request.form.get('motivo', ''), request=request)
+            pago_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
         flash('Pago {} rechazado.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
         db.session.rollback()
@@ -114,9 +119,10 @@ def rechazar_pago(pago_id):
 @requiere_rol('admin', 'asistente')
 @login_required
 def verificar_pago_grupal(pago_id):
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_grupales.verificar_pago_grupal(
-            pago_id, current_user.id, request=request)
+            pago_id, current_user.id, ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} verificada: se acreditó a {} persona(s).'.format(
             pago.codigo_seguimiento, pago.pagos.count()), 'success')
     except (ErrorDeCarga, ValueError) as error:
@@ -130,9 +136,11 @@ def verificar_pago_grupal(pago_id):
 @requiere_rol('admin', 'asistente')
 @login_required
 def rechazar_pago_grupal(pago_id):
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_grupales.rechazar_pago_grupal(
-            pago_id, current_user.id, request.form.get('motivo', ''), request=request)
+            pago_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} rechazada.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
         db.session.rollback()
@@ -178,13 +186,15 @@ def ver_comprobante(pago_id):
     if not ruta:
         abort(404)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='ver_comprobante',
         tabla='pagos',
         registro_id=pago.id,
         detalle={'codigo_seguimiento': pago.codigo_seguimiento},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -203,13 +213,15 @@ def ver_comprobante_grupal(pago_id):
     if not ruta:
         abort(404)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='ver_comprobante_grupal',
         tabla='pagos_grupales',
         registro_id=pago.id,
         detalle={'codigo_seguimiento': pago.codigo_seguimiento},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -258,13 +270,15 @@ def editar_cuota():
         saldo.cuota_total = nuevo_monto
         servicio_saldos.recalcular_saldo(saldo)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='corregir_cuota',
         tabla='ejercicios',
         registro_id=ejercicio.id,
         detalle={'valor_anterior': str(anterior), 'valor_nuevo': str(nuevo_monto)},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -308,6 +322,7 @@ def nuevo_ejercicio():
     )
     db.session.add(nuevo)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='abrir_ejercicio',
@@ -318,7 +333,8 @@ def nuevo_ejercicio():
             'cuota': str(cuota),
             'ejercicio_cerrado': anterior.anio if anterior else None
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -384,6 +400,7 @@ def entregar_libreta(saldo_id):
     pendiente = float(saldo.saldo_pendiente or 0)
     servicio_saldos.entregar_libreta(saldo)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='entregar_libreta',
@@ -391,7 +408,8 @@ def entregar_libreta(saldo_id):
         registro_id=saldo.id,
         detalle={'dni': saldo.aportante.dni,
                  'saldo_pendiente_al_momento': str(pendiente)},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 

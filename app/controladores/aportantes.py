@@ -36,6 +36,7 @@ from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante
 from app.utilidades.limite_peticiones import excede_limite
+from app.utilidades.peticion import ip_y_user_agent
 
 aportantes_bp = Blueprint('aportantes', __name__)
 
@@ -128,7 +129,8 @@ def procesar_cuota_individual():
         }
         data.update(leer_comprobante())
 
-        pago, saldo = servicio_pagos.crear_pago_de_cuota(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago, saldo = servicio_pagos.crear_pago_de_cuota(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -195,7 +197,8 @@ def procesar_cuota_grupal():
         }
         data.update(leer_comprobante('comprobante'))
 
-        grupal, resumen = servicio_grupales.procesar_pago_grupal(data, request)
+        ip, user_agent = ip_y_user_agent()
+        grupal, resumen = servicio_grupales.procesar_pago_grupal(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito_grupal',
                                 codigo=grupal.codigo_seguimiento))
 
@@ -244,7 +247,8 @@ def aporte_adicional():
         }
         data.update(leer_comprobante())
 
-        pago = servicio_pagos.crear_pago_publico(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago = servicio_pagos.crear_pago_publico(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -310,7 +314,8 @@ def procesar_solicitud_libreta():
         }
         data.update(leer_comprobante())
 
-        pago = servicio_pagos.crear_pago_publico(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago = servicio_pagos.crear_pago_publico(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -385,6 +390,7 @@ def procesar_solicitud_fondos():
         # todavía no confirma nada: eso lo hace el commit del final.
         db.session.flush()
 
+        ip, user_agent = ip_y_user_agent()
         auditoria.registrar(
             usuario='portal-publico',
             accion='cargar_solicitud_fondos',
@@ -392,7 +398,8 @@ def procesar_solicitud_fondos():
             registro_id=pedido.id,
             detalle={'codigo_seguimiento': pedido.codigo_seguimiento,
                      'tipo': pedido.tipo},
-            request=request
+            ip=ip,
+            user_agent=user_agent
         )
         db.session.commit()
 
