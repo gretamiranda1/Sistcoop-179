@@ -33,7 +33,7 @@ from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 
-administracion_bp = Blueprint('administracion', __name__, url_prefix='/admin')
+administracion_bp = Blueprint('administracion', __name__)
 
 
 def sin_permiso(*roles):

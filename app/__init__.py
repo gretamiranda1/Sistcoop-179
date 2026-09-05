@@ -13,7 +13,7 @@ def create_app(config_name='development'):
         ProductionConfig.validar()
 
     # Carpetas que tienen que existir sí o sí
-    os.makedirs(os.path.join(app.root_path, '..', 'instance'), exist_ok=True)
+    os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
@@ -32,7 +32,7 @@ def create_app(config_name='development'):
 
     app.register_blueprint(autenticacion_bp, url_prefix='/auth')
     app.register_blueprint(aportantes_bp, url_prefix='/aportante')
-    app.register_blueprint(administracion_bp)
+    app.register_blueprint(administracion_bp, url_prefix='/admin')
     app.register_blueprint(principal_bp)
 
     from app.modelos.usuarios import Usuario

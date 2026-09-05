@@ -20,6 +20,7 @@ from datetime import datetime
 from flask import (Blueprint, render_template, request, redirect, url_for,
                    flash, jsonify, current_app)
 
+from app.constantes import ANIOS
 from app.extensions import db
 from app.modelos.aportantes import Aportante
 from app.modelos.carreras import Carrera
@@ -37,8 +38,6 @@ from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante
 from app.utilidades.limite_peticiones import excede_limite
 
 aportantes_bp = Blueprint('aportantes', __name__)
-
-ANIOS = ['1°', '2°', '3°']
 
 
 # ============================================
