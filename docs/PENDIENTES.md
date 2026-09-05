@@ -37,3 +37,22 @@ el `.env`. Detectado en el Bloque 1 (constantes compartidas).
   formato inválido, `date.fromisoformat()` iba a tirar una excepción sin
   capturar antes del Bloque 4, y sigue igual (no es parte de lo que pedía
   este bloque, y corregirlo cambiaría el comportamiento actual).
+
+## Bloque 5 — migraciones contra PostgreSQL
+
+`migrations/versions/1321d039f458_estado_inicial.py` se generó con
+`flask db migrate` contra SQLite (es el motor de desarrollo). Revisé a mano
+que estén todas las claves foráneas y todos los `UniqueConstraint` de los
+modelos, incluida la restricción con nombre `uq_saldo_aportante_ejercicio`
+de `SaldoAportante`, y coinciden.
+
+Lo que NO se probó todavía es correr esta migración contra una base
+PostgreSQL vacía real: los tipos (`Numeric`, `JSON`, `Boolean`) y el modo
+`render_as_batch` se comportan distinto entre motores, y Alembic puede
+generar SQL válido para SQLite que no sea válido (o no haga falta) en
+PostgreSQL. Antes de desplegar a producción hay que:
+
+1. Levantar un PostgreSQL vacío (local o de prueba).
+2. Apuntar `DATABASE_URL` ahí y correr `flask db upgrade`.
+3. Confirmar que las 12 tablas, sus FK y sus `UNIQUE` quedan iguales a los
+   de SQLite (`\d+ nombre_tabla` en `psql`, o `inspect(db.engine)`).

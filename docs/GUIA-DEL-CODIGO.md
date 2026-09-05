@@ -324,7 +324,8 @@ nadie se le asigna más de lo que debe.
 ```bash
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
+flask db upgrade              # crea las tablas (FLASK_APP=run.py)
 python scripts/init_db.py     # anotá la contraseña que muestra
 python run.py
 ```
@@ -332,17 +333,24 @@ python run.py
 **Antes de subir cualquier cambio**
 
 ```bash
-python scripts/prueba_flujo.py
+pytest
 ```
 
-Tienen que dar 47 controles en OK y 0 en MAL. Además hay una lista de
-controles a mano en `docs/PRUEBAS-MANUALES.md`.
+Tienen que pasar todos los tests. Además hay una lista de controles a mano
+en `docs/PRUEBAS-MANUALES.md`.
 
 **Agregar un campo a una tabla**
 
 1. Agregar la columna en el archivo de `app/modelos/`.
-2. Si la base ya tenía datos, agregar la columna en
-   `scripts/migrar_incremento2.py`.
+2. Generar la migración y aplicarla:
+   ```bash
+   flask db migrate -m "Agrega <columna> a <tabla>"
+   ```
+   Revisar a mano el archivo que queda en `migrations/versions/`: los
+   índices y las restricciones con nombre no siempre se detectan solos.
+   ```bash
+   flask db upgrade
+   ```
 3. Mostrarla en la plantilla que corresponda.
 
 **Agregar una pantalla nueva**

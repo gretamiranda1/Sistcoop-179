@@ -64,22 +64,26 @@ sistcoop179/
 │   │   ├── css/           Hoja de estilos propia
 │   │   ├── js/            JavaScript propio
 │   │   └── vendor/        Bootstrap 5 y Bootstrap Icons (locales)
-│   ├── data/              Datos de referencia (carreras del instituto)
 │   ├── config.py          Configuración por entorno
 │   └── extensions.py      Instancias de las extensiones de Flask
-├── scripts/               init_db, migrar_incremento2, agregar_carreras,
-│                          limpiar_datos, prueba_flujo
+├── migrations/            Flask-Migrate/Alembic: historial de esquema
+├── seeds/                 Datos de referencia (carreras del instituto)
+├── scripts/               init_db, agregar_carreras, limpiar_datos
+├── tests/                 pytest: conftest.py + casos por área
 ├── instance/              Base SQLite y comprobantes subidos (NO versionado)
 ├── docs/                  Guía del código, bitácoras, pruebas manuales e
 │                          informes de avance
 ├── run.py                 Servidor de desarrollo
 ├── requirements.txt
-├── .env.example
+├── requirements-dev.txt
 ├── requirements-prod.txt
+├── .env.example
 └── .gitignore
 ```
 
 En desarrollo se instala `requirements.txt`; en el servidor, `requirements-prod.txt`.
+Para correr los tests hace falta además `requirements-dev.txt` (pytest,
+pytest-flask, pytest-cov), que ya incluye `requirements.txt`.
 
 ## 5. Equipo
 
