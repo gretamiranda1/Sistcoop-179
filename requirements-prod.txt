@@ -1,0 +1,9 @@
+# SistCoop 179 — dependencias adicionales para el servidor
+#
+# Sólo lo que hace falta arriba de requirements.txt para correr contra
+# PostgreSQL en producción.
+
+-r requirements.txt
+
+# PostgreSQL: motor comprometido para producción.
+psycopg2-binary==2.9.7
