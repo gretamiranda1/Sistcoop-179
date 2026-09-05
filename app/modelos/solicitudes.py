@@ -1,6 +1,18 @@
 from app.extensions import db
 from datetime import datetime
 
+TIPOS_LEGIBLES = {
+    'fondos': 'Fondos de la carrera',
+    'evento': 'Autorización de evento',
+    'viaje': 'Viaje o proyecto',
+}
+
+ESTADOS_LEGIBLES = {
+    'pendiente': 'Pendiente de resolución',
+    'aprobada': 'Aprobada',
+    'rechazada': 'Rechazada',
+}
+
 
 class SolicitudFondo(db.Model):
     """Pedido de fondos, evento o viaje que presenta un curso o un docente.
@@ -36,6 +48,19 @@ class SolicitudFondo(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Los valores admitidos salen de TIPOS_LEGIBLES y ESTADOS_LEGIBLES: no hay
+    # una segunda lista escrita a mano acá, sólo el SQL armado a partir de esas.
+    __table_args__ = (
+        db.CheckConstraint(
+            'tipo IN ({})'.format(', '.join(repr(v) for v in TIPOS_LEGIBLES)),
+            name='ck_solicitudes_fondo_tipo'
+        ),
+        db.CheckConstraint(
+            'estado IN ({})'.format(', '.join(repr(v) for v in ESTADOS_LEGIBLES)),
+            name='ck_solicitudes_fondo_estado'
+        ),
+    )
+
     carrera = db.relationship('Carrera', backref='solicitudes')
 
     @classmethod
@@ -46,21 +71,11 @@ class SolicitudFondo(db.Model):
 
     @property
     def tipo_legible(self):
-        nombres = {
-            'fondos': 'Fondos de la carrera',
-            'evento': 'Autorización de evento',
-            'viaje': 'Viaje o proyecto',
-        }
-        return nombres.get(self.tipo, self.tipo)
+        return TIPOS_LEGIBLES.get(self.tipo, self.tipo)
 
     @property
     def estado_legible(self):
-        nombres = {
-            'pendiente': 'Pendiente de resolución',
-            'aprobada': 'Aprobada',
-            'rechazada': 'Rechazada',
-        }
-        return nombres.get(self.estado, self.estado)
+        return ESTADOS_LEGIBLES.get(self.estado, self.estado)
 
     def __repr__(self):
         return '<SolicitudFondo {} - {}>'.format(self.codigo_seguimiento, self.tipo)

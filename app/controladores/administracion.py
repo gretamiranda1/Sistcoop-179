@@ -28,6 +28,7 @@ from app.modelos.solicitudes import SolicitudFondo
 from app.formularios.administracion import FormularioEditarCuota, FormularioNuevoEjercicio
 from app.seguridad.permisos import requiere_rol
 from app.servicios import auditoria as servicio_auditoria
+from app.servicios import ejercicios as servicio_ejercicios
 from app.servicios import pagos as servicio_pagos
 from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import saldos as servicio_saldos
@@ -264,10 +265,9 @@ def editar_cuota():
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
 
-    # Los saldos guardan la cuota del momento en que se crearon, así que hay
-    # que realinearlos
+    # Los saldos ya no guardan la cuota (sale de ejercicio.cuota): sólo hay
+    # que recalcular lo que sí queda en cada uno, saldo_pendiente y estado
     for saldo in SaldoAportante.query.filter_by(ejercicio_id=ejercicio.id).all():
-        saldo.cuota_total = nuevo_monto
         servicio_saldos.recalcular_saldo(saldo)
 
     ip, user_agent = ip_y_user_agent()
@@ -304,22 +304,10 @@ def nuevo_ejercicio():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
         return redirect(url_for('administracion.panel'))
 
-    anterior = Ejercicio.get_ejercicio_vigente()
-    if anterior:
-        anterior.activo = False
-        anterior.cerrado = True
-        db.session.add(anterior)
-
     fecha_asamblea = formulario.fecha_asamblea.data
+    fecha_asamblea = date.fromisoformat(fecha_asamblea) if fecha_asamblea else None
 
-    nuevo = Ejercicio(
-        anio=anio,
-        cuota=cuota,
-        fecha_asamblea=date.fromisoformat(fecha_asamblea) if fecha_asamblea else None,
-        activo=True,
-        cerrado=False
-    )
-    db.session.add(nuevo)
+    nuevo, anterior = servicio_ejercicios.abrir_ejercicio(anio, cuota, fecha_asamblea)
 
     ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(

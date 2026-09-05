@@ -56,3 +56,44 @@ PostgreSQL. Antes de desplegar a producción hay que:
 2. Apuntar `DATABASE_URL` ahí y correr `flask db upgrade`.
 3. Confirmar que las 12 tablas, sus FK y sus `UNIQUE` quedan iguales a los
    de SQLite (`\d+ nombre_tabla` en `psql`, o `inspect(db.engine)`).
+
+Esto sigue valiendo para las migraciones del Bloque 6: los índices únicos
+parciales (`sqlite_where=...` / `postgresql_where=...`) y los `CHECK` se
+escribieron pensando en los dos motores, pero sólo se probaron corriendo
+contra SQLite.
+
+## Bloque 6 — las tres restricciones de 6.3 quedaron en la base
+
+Los tres supuestos (un fondo de capital activo, un fondo por carrera, un
+ejercicio vigente) se probaron como índices únicos —dos de ellos parciales,
+con `WHERE`— y los tres funcionaron con `render_as_batch` en SQLite,
+incluso con filas ya referenciándolos por FK. No quedó ninguno resuelto
+sólo en el servicio: la base los garantiza a los tres. El guard de servicio
+para "ejercicio vigente" (`app/servicios/ejercicios.py::abrir_ejercicio`)
+se agregó de todos modos, como pidió el usuario, para que cerrar el
+anterior y abrir el nuevo no dependa de que cada llamador se acuerde de
+hacerlo en el orden correcto — es una capa extra sobre el índice, no un
+reemplazo.
+
+### Dos cosas para tener en cuenta en la próxima migración
+
+- **`migrations/env.py` apaga `PRAGMA foreign_keys` durante la migración**
+  (sólo en esa conexión, sólo mientras corre `flask db migrate`/`upgrade`).
+  Hacía falta porque el modo batch de SQLite recrea la tabla entera
+  (DROP + CREATE) para cualquier cambio que no sea un simple índice —una
+  `UniqueConstraint` o un `CheckConstraint` de tabla—, y si otra tabla la
+  referencia por FK con `PRAGMA foreign_keys=ON` (ver `app/__init__.py`,
+  Bloque 5), ese DROP TABLE falla. La app en uso normal sigue con las
+  claves foráneas activas siempre: esto es sólo para la conexión de
+  Alembic. Ver el comentario en `migrations/env.py` para el detalle de por
+  qué el pragma se pide sobre el driver crudo y no sobre la `Connection` de
+  SQLAlchemy (pedirlo ahí abre una transacción implícita que se pierde sin
+  commit al cerrar la conexión, y la migración entera queda revertida sin
+  ningún error visible).
+- **Alembic no detecta `CheckConstraint` con autogenerate**: `flask db
+  migrate` no encontró los cuatro `CHECK` del Bloque 6.4 aunque estaban en
+  los modelos ("No changes in schema detected"). Esa migración
+  (`909b3621ff6e`) se escribió a mano con `flask db revision` +
+  `batch_op.create_check_constraint(...)`. Si se agrega o cambia un `CHECK`
+  más adelante, hay que repetir el archivo a mano y no confiar en el
+  autogenerate para esa parte.

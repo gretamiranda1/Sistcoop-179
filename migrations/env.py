@@ -97,6 +97,22 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
+        # El modo batch recrea la tabla entera para cualquier cambio que
+        # SQLite no soporte con ALTER directo (agregar una constraint, no
+        # sólo un índice). Si la tabla tiene otras que la referencian por FK
+        # (fondos <- pagos, usuarios <- pagos...) y PRAGMA foreign_keys está
+        # en ON (ver app/__init__.py), el DROP TABLE de ese paso falla.
+        #
+        # Se apaga sólo para esta conexión de migración, y se hace sobre el
+        # driver crudo (no connection.exec_driver_sql): pedirle el PRAGMA a
+        # la Connection de SQLAlchemy le abre una transacción implícita
+        # (autobegin) antes de que Alembic abra la suya, y esa transacción
+        # de más se pierde sin commit al cerrar la conexión — la migración
+        # entera queda revertida en silencio, sin ningún error.
+        es_sqlite = connection.dialect.name == 'sqlite'
+        if es_sqlite:
+            connection.connection.dbapi_connection.execute('PRAGMA foreign_keys=OFF')
+
         context.configure(
             connection=connection,
             target_metadata=get_metadata(),
@@ -105,6 +121,9 @@ def run_migrations_online():
 
         with context.begin_transaction():
             context.run_migrations()
+
+        if es_sqlite:
+            connection.connection.dbapi_connection.execute('PRAGMA foreign_keys=ON')
 
 
 if context.is_offline_mode():

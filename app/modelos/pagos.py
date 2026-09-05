@@ -107,6 +107,19 @@ class Pago(db.Model):
     ejercicio_id = db.Column(db.Integer, db.ForeignKey('ejercicios.id'))
     pago_grupal_id = db.Column(db.Integer, db.ForeignKey('pagos_grupales.id'))
 
+    # Los valores admitidos salen de ESTADOS_LEGIBLES y TIPOS_LEGIBLES: no hay
+    # una segunda lista escrita a mano acá, sólo el SQL armado a partir de esas.
+    __table_args__ = (
+        db.CheckConstraint(
+            'estado IN ({})'.format(', '.join(repr(v) for v in ESTADOS_LEGIBLES)),
+            name='ck_pagos_estado'
+        ),
+        db.CheckConstraint(
+            'tipo IN ({})'.format(', '.join(repr(v) for v in TIPOS_LEGIBLES)),
+            name='ck_pagos_tipo'
+        ),
+    )
+
     # ============================================
     # CONSULTAS
     # ============================================

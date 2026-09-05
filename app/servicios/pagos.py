@@ -459,7 +459,7 @@ def estado_de_cuota(dni):
     if not saldo:
         return estado
 
-    estado['cuota_total'] = float(saldo.cuota_total)
+    estado['cuota_total'] = float(saldo.ejercicio.cuota)
     estado['pagado'] = float(saldo.pagado)
     estado['en_revision'] = saldo.en_revision
     estado['saldo_pendiente'] = float(saldo.saldo_pendiente)
