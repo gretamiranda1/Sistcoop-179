@@ -80,6 +80,18 @@ def normalizar_personas(filas):
             )
             continue
 
+        if not validaciones.validar_nombre(nombre):
+            errores.append(
+                'Persona {}: el nombre solo admite caracteres alfabéticos.'.format(numero)
+            )
+            continue
+
+        if not validaciones.validar_nombre(apellido):
+            errores.append(
+                'Persona {}: el apellido solo admite caracteres alfabéticos.'.format(numero)
+            )
+            continue
+        
         dnis_ya_vistos.append(dni)
 
         personas.append({
