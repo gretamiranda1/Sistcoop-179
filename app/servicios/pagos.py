@@ -117,6 +117,10 @@ def validar_datos(data, pide_apellido=True):
     if cuit and not validaciones.validar_cuit(cuit):
         errores.append('El CUIT no es válido. Revisá el número, incluido el '
                        'dígito verificador.')
+
+    if data.get('destino') == 'carrera':
+        if not data.get('carrera_destino_id'):
+            errores.append('Debe seleccionar una carrera.')
         
     return errores
 
