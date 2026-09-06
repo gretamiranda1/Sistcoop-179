@@ -106,7 +106,9 @@ def validar_datos(data, pide_apellido=True):
     if not importe_ok:
         errores.append(mensaje)
 
-    if data.get('fecha'):
+    if not data.get('fecha'):
+        errores.append('Falta la fecha.')
+    else:
         fecha_ok, mensaje = validaciones.validar_fecha_transferencia(data['fecha'])
         if not fecha_ok:
             errores.append(mensaje)
