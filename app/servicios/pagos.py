@@ -120,28 +120,41 @@ def validar_datos(data, pide_apellido=True):
 
 
 def validar_operacion_y_comprobante(data):
-    """Controla que no se estén cargando dos veces la misma transferencia.
-
-    Si el aportante no puso número de operación, le ponemos uno interno.
-    Devuelve la lista de errores y deja el número final en data.
-    """
+    """Controla que no se estén cargando dos veces la misma transferencia."""
     errores = []
 
     codigo = (data.get('codigo_transaccion') or '').strip()
+
     if not codigo:
-        data['codigo_transaccion'] = generar_codigo_transaccion()
+        errores.append(
+            'El número de operación es obligatorio.'
+        )
     else:
         data['codigo_transaccion'] = codigo
-        if codigo_transaccion_en_uso(codigo):
-            errores.append('Ese número de operación ya fue cargado en otro pago. '
-                           'Si creés que es un error, escribile a la Cooperadora.')
+
+        if not codigo.isalnum():
+            errores.append(
+                'El número de operación sólo puede contener letras y números.'
+            )
+
+        elif len(codigo) < 8 or len(codigo) > 30:
+            errores.append(
+                'El número de operación debe tener entre 8 y 30 caracteres.'
+            )
+
+        elif codigo_transaccion_en_uso(codigo):
+            errores.append(
+                'Ese número de operación ya fue cargado en otro pago. '
+                'Si creés que es un error, escribile a la Cooperadora.'
+            )
 
     if comprobante_ya_usado(data.get('hash_comprobante')):
-        errores.append('Ese comprobante ya fue cargado en el sistema. Cada '
-                       'transferencia se carga una sola vez.')
+        errores.append(
+            'Ese comprobante ya fue cargado en el sistema. Cada '
+            'transferencia se carga una sola vez.'
+        )
 
     return errores
-
 
 def buscar_o_crear_aportante(data):
     """Busca la persona por DNI y, si no está, la crea.
