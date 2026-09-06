@@ -32,15 +32,20 @@ def limpiar_dni(dni):
     return limpio
 
 
-def validar_dni(dni):
-    """DNI argentino: 7 u 8 dígitos."""
-    limpio = limpiar_dni(dni)
 
-    if len(limpio) < 7 or len(limpio) > 8:
+
+def validar_dni(dni):
+    
+    """DNI argentino: 7 u 8 dígitos."""
+    texto = str(dni or '').strip()
+
+    if not texto.isdigit():
         return False
 
-    # 00000000 o 11111111 son datos de relleno, no un documento
-    if len(set(limpio)) == 1:
+    if len(texto) < 7 or len(texto) > 8:
+        return False
+
+    if len(set(texto)) == 1:
         return False
 
     return True
