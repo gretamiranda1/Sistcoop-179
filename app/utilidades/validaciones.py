@@ -151,7 +151,7 @@ def validar_fecha(fecha_texto):
         return False, 'La fecha no tiene un formato válido.'
 
     if fecha.year < 1900 or fecha.year > 2100:
-        return False, 'El año de la fecha no es razonable.'
+        return False, 'La fecha ingresada está fuera del rango permitido.'
 
     return True, None
 
@@ -173,8 +173,7 @@ def validar_fecha_transferencia(fecha_texto):
         return False, 'La fecha de la transferencia no puede ser futura.'
 
     if fecha < hoy - timedelta(days=DIAS_MAXIMOS_HACIA_ATRAS):
-        return False, ('La fecha de la transferencia es demasiado vieja. '
-                       'Fijate que el año esté bien escrito.')
+        return False, ('La fecha ingresada está fuera del rango permitido')
 
     return True, None
 
