@@ -59,17 +59,35 @@ def normalizar_personas(filas):
 
         nombre = (fila.get('nombre') or '').strip()
         apellido = (fila.get('apellido') or '').strip()
+
         if not nombre or not apellido:
-            errores.append('Persona {}: faltan el nombre y/o el apellido.'.format(numero))
+            errores.append(
+                'Persona {}: faltan el nombre y/o el apellido.'.format(numero)
+                )
+            continue
+
+        carrera_id = fila.get('carrera_id')
+        if not carrera_id:
+            errores.append(
+                'Persona {}: falta la carrera.'.format(numero)
+            )
+            continue
+
+        anio = fila.get('anio')
+        if not anio:
+            errores.append(
+                'Persona {}: falta el año.'.format(numero)
+            )
             continue
 
         dnis_ya_vistos.append(dni)
+
         personas.append({
             'dni': dni,
             'nombre': nombre,
             'apellido': apellido,
-            'carrera_id': fila.get('carrera_id') or None,
-            'anio': fila.get('anio') or None,
+            'carrera_id': carrera_id,
+            'anio': anio,
             'solicita_libreta': bool(fila.get('solicita_libreta')),
         })
 

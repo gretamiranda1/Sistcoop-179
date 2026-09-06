@@ -113,11 +113,14 @@ def validar_nombre(nombre):
 # IMPORTES
 # ============================================
 
+IMPORTE_MINIMO = 1
+IMPORTE_MAXIMO = 1000000
+
+
 def validar_importe(importe):
     """Devuelve (es_valido, mensaje_de_error).
 
-    Un importe válido es un número mayor a cero. Lo usamos en todos los
-    formularios que piden plata.
+    Un importe válido debe estar dentro de los rangos permitidos.
     """
     if importe is None or importe == '':
         return False, 'Falta el importe.'
@@ -127,8 +130,11 @@ def validar_importe(importe):
     except (ValueError, TypeError):
         return False, 'El importe no es un número válido.'
 
-    if valor <= 0:
-        return False, 'El importe tiene que ser mayor a cero.'
+    if valor < IMPORTE_MINIMO:
+        return False, f'El importe debe ser mayor o igual a ${IMPORTE_MINIMO}.'
+
+    if valor > IMPORTE_MAXIMO:
+        return False, f'El importe debe ser menor o igual a ${IMPORTE_MAXIMO}.'
 
     return True, None
 
