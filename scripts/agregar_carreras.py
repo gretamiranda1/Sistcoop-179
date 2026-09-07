@@ -1,6 +1,6 @@
 """Sincronizar las carreras del instituto y sus fondos.
 
-Agrega las carreras de app/data/carreras.py que todavía no estén en la base
+Agrega las carreras de seeds/carreras.py que todavía no estén en la base
 y le crea el fondo propio a cada una. No borra ni desactiva nada.
 
 Uso:
@@ -13,10 +13,10 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app import create_app                    # noqa: E402
-from app.data.carreras import CARRERAS        # noqa: E402
 from app.extensions import db                 # noqa: E402
 from app.modelos.carreras import Carrera      # noqa: E402
 from app.modelos.fondos import Fondo          # noqa: E402
+from seeds.carreras import CARRERAS           # noqa: E402
 
 
 def sincronizar():

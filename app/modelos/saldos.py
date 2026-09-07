@@ -24,8 +24,6 @@ class SaldoAportante(db.Model):
     aportante_id = db.Column(db.Integer, db.ForeignKey('aportantes.id'), nullable=False)
     ejercicio_id = db.Column(db.Integer, db.ForeignKey('ejercicios.id'), nullable=False)
 
-    cuota_total = db.Column(db.Numeric(10, 2), nullable=False)
-
     # Ojo: acá van SÓLO los pagos verificados. Lo que se cargó y todavía no
     # se verificó se consulta aparte, con la propiedad en_revision.
     pagado = db.Column(db.Numeric(10, 2), default=0)
@@ -76,7 +74,7 @@ class SaldoAportante(db.Model):
         Lo usa el reparto del pago grupal, para no pedirle dos veces lo mismo
         a alguien que ya cargó un comprobante y espera la verificación.
         """
-        falta = float(self.cuota_total) - float(self.pagado) - self.en_revision
+        falta = float(self.ejercicio.cuota) - float(self.pagado) - self.en_revision
         if falta < 0:
             return 0.0
         return round(falta, 2)
@@ -87,19 +85,21 @@ class SaldoAportante(db.Model):
 
     @property
     def porcentaje_pagado(self):
-        if not self.cuota_total or float(self.cuota_total) == 0:
+        cuota_total = float(self.ejercicio.cuota)
+        if not cuota_total:
             return 0
-        porcentaje = float(self.pagado) / float(self.cuota_total) * 100
+        porcentaje = float(self.pagado) / cuota_total * 100
         return min(round(porcentaje), 100)
 
     @property
     def porcentaje_en_revision(self):
-        if not self.cuota_total or float(self.cuota_total) == 0:
+        cuota_total = float(self.ejercicio.cuota)
+        if not cuota_total:
             return 0
-        porcentaje = self.en_revision / float(self.cuota_total) * 100
+        porcentaje = self.en_revision / cuota_total * 100
         # Entre lo verificado y lo que está en revisión no se puede pasar del 100%
         disponible = 100 - self.porcentaje_pagado
         return min(round(porcentaje), disponible)
 
     def __repr__(self):
-        return '<Saldo {}: {}/{}>'.format(self.aportante_id, self.pagado, self.cuota_total)
+        return '<Saldo {}: {}/{}>'.format(self.aportante_id, self.pagado, self.ejercicio.cuota)

@@ -21,6 +21,15 @@ class Ejercicio(db.Model):
     cerrado = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    __table_args__ = (
+        # Sólo puede haber un ejercicio VIGENTE (activo y no cerrado) a la
+        # vez. Índice único parcial: sólo mira las filas que cumplen la
+        # condición, así que los ejercicios ya cerrados no cuentan.
+        db.Index('uq_ejercicio_vigente', 'activo', unique=True,
+                sqlite_where=db.text("activo = 1 AND cerrado = 0"),
+                postgresql_where=db.text("activo = true AND cerrado = false")),
+    )
+
     @classmethod
     def get_ejercicio_vigente(cls):
         """El ejercicio abierto, contra el que se imputan los pagos"""

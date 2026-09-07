@@ -25,27 +25,19 @@ from app.modelos.pagos import Pago
 from app.modelos.pagos_grupales import PagoGrupal
 from app.modelos.saldos import SaldoAportante
 from app.modelos.solicitudes import SolicitudFondo
+from app.formularios.administracion import FormularioEditarCuota, FormularioNuevoEjercicio
+from app.seguridad.permisos import requiere_rol
 from app.servicios import auditoria as servicio_auditoria
+from app.servicios import ejercicios as servicio_ejercicios
 from app.servicios import pagos as servicio_pagos
 from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import saldos as servicio_saldos
 from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
+from app.utilidades.peticion import ip_y_user_agent
 
-administracion_bp = Blueprint('administracion', __name__, url_prefix='/admin')
-
-
-def sin_permiso(*roles):
-    """True si el usuario que está logueado no tiene ninguno de estos roles.
-
-    Lo usamos al principio de cada vista. Antes cada una repetía el mismo
-    if comparando contra 'admin', y era fácil olvidárselo en una vista nueva
-    (RF-14, RNF-01).
-    """
-    if not current_user.is_authenticated:
-        return True
-    return current_user.rol not in roles
+administracion_bp = Blueprint('administracion', __name__)
 
 
 # ============================================
@@ -53,12 +45,9 @@ def sin_permiso(*roles):
 # ============================================
 
 @administracion_bp.route('/')
+@requiere_rol('admin', 'asistente', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def panel():
-    if sin_permiso('admin', 'asistente'):
-        flash('No tenés permisos para acceder a esa sección.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     ejercicio = Ejercicio.get_ejercicio_vigente()
     if ejercicio:
         puede_editar_cuota, motivo_cuota = ejercicio.admite_cambio_de_cuota()
@@ -89,19 +78,18 @@ def panel():
 # ============================================
 
 @administracion_bp.route('/pagos/<int:pago_id>/verificar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
 @login_required
 def verificar_pago(pago_id):
-    if sin_permiso('admin', 'asistente'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_pagos.verificar_pago(
             pago_id,
             current_user.id,
             numero_recibo=(request.form.get('numero_recibo') or '').strip() or None,
             serie_recibo=(request.form.get('serie_recibo') or '').strip() or None,
-            request=request
+            ip=ip,
+            user_agent=user_agent
         )
         flash('Pago {} verificado. El importe se acreditó en {}.'.format(
             pago.codigo_seguimiento, pago.fondo.nombre), 'success')
@@ -113,15 +101,14 @@ def verificar_pago(pago_id):
 
 
 @administracion_bp.route('/pagos/<int:pago_id>/rechazar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
 @login_required
 def rechazar_pago(pago_id):
-    if sin_permiso('admin', 'asistente'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_pagos.rechazar_pago(
-            pago_id, current_user.id, request.form.get('motivo', ''), request=request)
+            pago_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
         flash('Pago {} rechazado.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
         db.session.rollback()
@@ -131,15 +118,13 @@ def rechazar_pago(pago_id):
 
 
 @administracion_bp.route('/pagos-grupales/<int:pago_id>/verificar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
 @login_required
 def verificar_pago_grupal(pago_id):
-    if sin_permiso('admin', 'asistente'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_grupales.verificar_pago_grupal(
-            pago_id, current_user.id, request=request)
+            pago_id, current_user.id, ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} verificada: se acreditó a {} persona(s).'.format(
             pago.codigo_seguimiento, pago.pagos.count()), 'success')
     except (ErrorDeCarga, ValueError) as error:
@@ -150,15 +135,14 @@ def verificar_pago_grupal(pago_id):
 
 
 @administracion_bp.route('/pagos-grupales/<int:pago_id>/rechazar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
 @login_required
 def rechazar_pago_grupal(pago_id):
-    if sin_permiso('admin', 'asistente'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
+    ip, user_agent = ip_y_user_agent()
     try:
         pago = servicio_grupales.rechazar_pago_grupal(
-            pago_id, current_user.id, request.form.get('motivo', ''), request=request)
+            pago_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} rechazada.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
         db.session.rollback()
@@ -193,12 +177,9 @@ def enviar_comprobante(ruta, codigo):
 
 
 @administracion_bp.route('/comprobante/<int:pago_id>')
+@requiere_rol('admin', 'asistente', 'tesorera', mensaje='No tenés permisos para ver los comprobantes.')
 @login_required
 def ver_comprobante(pago_id):
-    if sin_permiso('admin', 'asistente', 'tesorera'):
-        flash('No tenés permisos para ver los comprobantes.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     pago = Pago.query.get(pago_id)
     if not pago or not pago.comprobante_nombre:
         abort(404)
@@ -207,13 +188,15 @@ def ver_comprobante(pago_id):
     if not ruta:
         abort(404)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='ver_comprobante',
         tabla='pagos',
         registro_id=pago.id,
         detalle={'codigo_seguimiento': pago.codigo_seguimiento},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -221,12 +204,9 @@ def ver_comprobante(pago_id):
 
 
 @administracion_bp.route('/comprobante-grupal/<int:pago_id>')
+@requiere_rol('admin', 'asistente', 'tesorera', mensaje='No tenés permisos para ver los comprobantes.')
 @login_required
 def ver_comprobante_grupal(pago_id):
-    if sin_permiso('admin', 'asistente', 'tesorera'):
-        flash('No tenés permisos para ver los comprobantes.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     pago = PagoGrupal.query.get(pago_id)
     if not pago or not pago.comprobante_nombre:
         abort(404)
@@ -235,13 +215,15 @@ def ver_comprobante_grupal(pago_id):
     if not ruta:
         abort(404)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='ver_comprobante_grupal',
         tabla='pagos_grupales',
         registro_id=pago.id,
         detalle={'codigo_seguimiento': pago.codigo_seguimiento},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -253,6 +235,7 @@ def ver_comprobante_grupal(pago_id):
 # ============================================
 
 @administracion_bp.route('/editar-cuota', methods=['POST'])
+@requiere_rol('admin')
 @login_required
 def editar_cuota():
     """Corrige el importe de la cuota del ejercicio vigente.
@@ -262,10 +245,6 @@ def editar_cuota():
     sección 6): esto es para arreglar un error de tipeo al abrir el
     ejercicio, no para cambiar la cuota a mitad de camino.
     """
-    if sin_permiso('admin'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     ejercicio = Ejercicio.get_ejercicio_vigente()
     if not ejercicio:
         flash('No hay un ejercicio vigente.', 'danger')
@@ -276,30 +255,30 @@ def editar_cuota():
         flash(motivo, 'danger')
         return redirect(url_for('administracion.panel'))
 
-    try:
-        nuevo_monto = round(float(request.form.get('cuota')), 2)
-        if nuevo_monto <= 0:
-            raise ValueError
-    except (ValueError, TypeError):
-        flash('El monto de la cuota no es válido.', 'danger')
+    formulario = FormularioEditarCuota()
+    if not formulario.validate_on_submit():
+        flash(formulario.cuota.errors[0], 'danger')
         return redirect(url_for('administracion.panel'))
+
+    nuevo_monto = round(float(formulario.cuota.data), 2)
 
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
 
-    # Los saldos guardan la cuota del momento en que se crearon, así que hay
-    # que realinearlos
+    # Los saldos ya no guardan la cuota (sale de ejercicio.cuota): sólo hay
+    # que recalcular lo que sí queda en cada uno, saldo_pendiente y estado
     for saldo in SaldoAportante.query.filter_by(ejercicio_id=ejercicio.id).all():
-        saldo.cuota_total = nuevo_monto
         servicio_saldos.recalcular_saldo(saldo)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='corregir_cuota',
         tabla='ejercicios',
         registro_id=ejercicio.id,
         detalle={'valor_anterior': str(anterior), 'valor_nuevo': str(nuevo_monto)},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -309,43 +288,28 @@ def editar_cuota():
 
 
 @administracion_bp.route('/nuevo-ejercicio', methods=['POST'])
+@requiere_rol('admin')
 @login_required
 def nuevo_ejercicio():
     """Cierra el ejercicio vigente y abre el siguiente"""
-    if sin_permiso('admin'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
-    try:
-        anio = int(request.form.get('anio'))
-        cuota = round(float(request.form.get('cuota')), 2)
-        if cuota <= 0:
-            raise ValueError
-    except (ValueError, TypeError):
+    formulario = FormularioNuevoEjercicio()
+    if not formulario.validate_on_submit():
         flash('Año o cuota inválidos.', 'danger')
         return redirect(url_for('administracion.panel'))
+
+    anio = int(formulario.anio.data)
+    cuota = round(float(formulario.cuota.data), 2)
 
     if Ejercicio.query.filter_by(anio=anio).first():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
         return redirect(url_for('administracion.panel'))
 
-    anterior = Ejercicio.get_ejercicio_vigente()
-    if anterior:
-        anterior.activo = False
-        anterior.cerrado = True
-        db.session.add(anterior)
+    fecha_asamblea = formulario.fecha_asamblea.data
+    fecha_asamblea = date.fromisoformat(fecha_asamblea) if fecha_asamblea else None
 
-    fecha_asamblea = request.form.get('fecha_asamblea')
+    nuevo, anterior = servicio_ejercicios.abrir_ejercicio(anio, cuota, fecha_asamblea)
 
-    nuevo = Ejercicio(
-        anio=anio,
-        cuota=cuota,
-        fecha_asamblea=date.fromisoformat(fecha_asamblea) if fecha_asamblea else None,
-        activo=True,
-        cerrado=False
-    )
-    db.session.add(nuevo)
-
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='abrir_ejercicio',
@@ -356,7 +320,8 @@ def nuevo_ejercicio():
             'cuota': str(cuota),
             'ejercicio_cerrado': anterior.anio if anterior else None
         },
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -375,12 +340,9 @@ def nuevo_ejercicio():
 # quien atiende el mostrador.
 
 @administracion_bp.route('/libretas')
+@requiere_rol('admin', 'asistente', 'preceptoria', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def gestion_libretas():
-    if sin_permiso('admin', 'asistente', 'preceptoria'):
-        flash('No tenés permisos para acceder a esa sección.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     dni = validaciones.limpiar_dni(request.args.get('dni', ''))
     aportante = None
     saldo = None
@@ -410,12 +372,9 @@ def gestion_libretas():
 
 
 @administracion_bp.route('/libretas/<int:saldo_id>/entregar', methods=['POST'])
+@requiere_rol('admin', 'asistente', 'preceptoria')
 @login_required
 def entregar_libreta(saldo_id):
-    if sin_permiso('admin', 'asistente', 'preceptoria'):
-        flash('No tenés permisos para hacer eso.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     saldo = SaldoAportante.query.get(saldo_id)
     if not saldo:
         flash('No encontramos el registro.', 'danger')
@@ -428,6 +387,7 @@ def entregar_libreta(saldo_id):
     pendiente = float(saldo.saldo_pendiente or 0)
     servicio_saldos.entregar_libreta(saldo)
 
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(
         usuario=str(current_user.id),
         accion='entregar_libreta',
@@ -435,7 +395,8 @@ def entregar_libreta(saldo_id):
         registro_id=saldo.id,
         detalle={'dni': saldo.aportante.dni,
                  'saldo_pendiente_al_momento': str(pendiente)},
-        request=request
+        ip=ip,
+        user_agent=user_agent
     )
     db.session.commit()
 
@@ -453,13 +414,10 @@ def entregar_libreta(saldo_id):
 # ============================================
 
 @administracion_bp.route('/auditoria')
+@requiere_rol('admin', 'tesorera', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def auditoria():
     """Registro de todas las operaciones, de la más nueva a la más vieja (RNF-04)"""
-    if sin_permiso('admin', 'tesorera'):
-        flash('No tenés permisos para acceder a esa sección.', 'danger')
-        return redirect(url_for('aportantes.inicio'))
-
     pagina = request.args.get('pagina', 1, type=int)
     registros = Auditoria.get_ultimas(pagina)
 

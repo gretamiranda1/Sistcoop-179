@@ -17,7 +17,9 @@ def buscar_o_crear_saldo(aportante_id, ejercicio_id, cuota_total):
     """Devuelve el saldo de esa persona para ese ejercicio; si no existe lo crea en cero.
 
     Crear el saldo NO acredita nada: nace con pagado = 0 y con toda la cuota
-    pendiente.
+    pendiente. `cuota_total` es la cuota del ejercicio en este momento: la
+    cuota en sí no se guarda en el saldo (sale de ejercicio.cuota), así que
+    no hace falta realinearla si se corrige después.
     """
     saldo = SaldoAportante.get_por_aportante(aportante_id, ejercicio_id)
 
@@ -25,7 +27,6 @@ def buscar_o_crear_saldo(aportante_id, ejercicio_id, cuota_total):
         saldo = SaldoAportante(
             aportante_id=aportante_id,
             ejercicio_id=ejercicio_id,
-            cuota_total=cuota_total,
             pagado=0,
             saldo_pendiente=cuota_total,
             estado='pendiente'
@@ -34,12 +35,6 @@ def buscar_o_crear_saldo(aportante_id, ejercicio_id, cuota_total):
         # flush() manda el INSERT a la base y le asigna el id a la fila, pero
         # todavía no confirma nada: eso lo hace el commit del final.
         db.session.flush()
-        return saldo
-
-    # Si la cuota del ejercicio se corrigió, el saldo se realinea
-    if float(saldo.cuota_total) != float(cuota_total):
-        saldo.cuota_total = cuota_total
-        recalcular_saldo(saldo)
 
     return saldo
 
@@ -56,7 +51,7 @@ def recalcular_saldo(saldo):
         total = total + float(pago.importe)
 
     saldo.pagado = total
-    pendiente = float(saldo.cuota_total) - total
+    pendiente = float(saldo.ejercicio.cuota) - total
 
     if pendiente <= 0:
         saldo.saldo_pendiente = 0

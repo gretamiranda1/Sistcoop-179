@@ -8,6 +8,12 @@ from datetime import datetime
 
 from app.extensions import db
 
+TIPOS_LEGIBLES = {
+    'capital': 'Fondo general',
+    'carrera': 'Fondo de carrera',
+    'evento': 'Fondo de evento',
+}
+
 
 class Fondo(db.Model):
     """Cada "bolsillo" de la Cooperadora.
@@ -27,6 +33,29 @@ class Fondo(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     carrera_id = db.Column(db.Integer, db.ForeignKey('carreras.id'), nullable=True)
+
+    __table_args__ = (
+        # Una carrera no puede tener dos fondos propios (no depende de
+        # `activo`: no tiene sentido un segundo fondo de carrera ni
+        # inactivo). Es un índice único y no una UniqueConstraint: en SQLite,
+        # agregar una constraint de tabla obliga a recrear la tabla entera
+        # (batch mode), y esta tabla tiene otras que la referencian por FK
+        # (pagos, movimientos_fondo) — recrearla choca con
+        # PRAGMA foreign_keys=ON. Un índice se crea sin tocar la tabla.
+        db.Index('uq_fondos_carrera_tipo', 'carrera_id', 'tipo', unique=True),
+        # Sólo puede haber un fondo de capital ACTIVO a la vez. Es un índice
+        # único parcial: sólo mira las filas que cumplen la condición, así
+        # que un fondo de capital desactivado no cuenta.
+        db.Index('uq_fondos_capital_activo', 'tipo', unique=True,
+                sqlite_where=db.text("tipo = 'capital' AND activo = 1"),
+                postgresql_where=db.text("tipo = 'capital' AND activo = true")),
+        # El valor admitido sale de TIPOS_LEGIBLES: no hay una segunda lista
+        # escrita a mano acá, sólo el SQL armado a partir de ese diccionario.
+        db.CheckConstraint(
+            'tipo IN ({})'.format(', '.join(repr(v) for v in TIPOS_LEGIBLES)),
+            name='ck_fondos_tipo'
+        ),
+    )
 
     pagos = db.relationship('Pago', backref='fondo', lazy='dynamic')
     movimientos = db.relationship('MovimientoFondo', backref='fondo', lazy='dynamic')

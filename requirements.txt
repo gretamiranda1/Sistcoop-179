@@ -15,9 +15,6 @@ WTForms==3.0.1
 SQLAlchemy==2.0.23
 python-dotenv==1.0.0
 
-# PostgreSQL: motor comprometido para producción.
-psycopg2-binary==2.9.7
-
 # Detección del tipo real de los archivos subidos. En Windows requiere
 # además el paquete python-magic-bin. Si no está disponible, el sistema cae
 # a verificar la firma binaria del archivo (ver app/utilidades/archivos.py).

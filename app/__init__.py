@@ -1,5 +1,6 @@
 import os
 from flask import Flask, render_template
+from sqlalchemy import event
 
 from app.config import config, ProductionConfig
 from app.extensions import db, migrate, login_manager, csrf
@@ -13,13 +14,27 @@ def create_app(config_name='development'):
         ProductionConfig.validar()
 
     # Carpetas que tienen que existir sí o sí
-    os.makedirs(os.path.join(app.root_path, '..', 'instance'), exist_ok=True)
+    os.makedirs(app.instance_path, exist_ok=True)
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
     db.init_app(app)
-    migrate.init_app(app, db)
+    # render_as_batch: SQLite no puede ejecutar ALTER TABLE ... ALTER COLUMN ni
+    # DROP COLUMN. En modo batch, Alembic arma la tabla nueva al lado, copia
+    # los datos y renombra, así que la primera migración que toque una columna
+    # no falla. No afecta a PostgreSQL, que sí soporta ALTER COLUMN directo.
+    migrate.init_app(app, db, render_as_batch=True)
     login_manager.init_app(app)
     csrf.init_app(app)
+
+    with app.app_context():
+        if db.engine.dialect.name == 'sqlite':
+            @event.listens_for(db.engine, 'connect')
+            def activar_claves_foraneas(conexion_dbapi, registro_conexion):
+                """SQLite trae las claves foráneas desactivadas por defecto:
+                sin esto, se puede borrar una fila con hijos colgando."""
+                cursor = conexion_dbapi.cursor()
+                cursor.execute('PRAGMA foreign_keys=ON')
+                cursor.close()
 
     # Los controladores se importan ACÁ ADENTRO y no arriba del archivo a
     # propósito: cada uno usa db, que se crea en este mismo archivo. Si los
@@ -28,11 +43,15 @@ def create_app(config_name='development'):
     from app.controladores.autenticacion import autenticacion_bp
     from app.controladores.aportantes import aportantes_bp
     from app.controladores.administracion import administracion_bp
+    from app.controladores.api import api_bp
     from app.controladores.principal import principal_bp
 
     app.register_blueprint(autenticacion_bp, url_prefix='/auth')
     app.register_blueprint(aportantes_bp, url_prefix='/aportante')
-    app.register_blueprint(administracion_bp)
+    app.register_blueprint(administracion_bp, url_prefix='/admin')
+    # Mismo prefijo que aportantes_bp: las URL de estos cuatro endpoints no
+    # cambian (/aportante/api/...), sólo el archivo donde vive el código.
+    app.register_blueprint(api_bp, url_prefix='/aportante')
     app.register_blueprint(principal_bp)
 
     from app.modelos.usuarios import Usuario
