@@ -207,6 +207,13 @@ def crear_pago_de_cuota(data, request=None):
     """
     errores = validar_datos(data)
     errores = errores + validar_operacion_y_comprobante(data)
+
+    if not data.get('carrera_id'):
+     errores.append('Debe seleccionar una carrera.')
+
+    if not data.get('anio'):
+        errores.append('Debe seleccionar un año.')
+
     if errores:
         raise ErrorDeCarga(errores)
 
