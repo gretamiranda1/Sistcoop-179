@@ -201,13 +201,50 @@ def leer_personas_del_formulario():
 
 def procesar_cuota_grupal():
     formulario = FormularioCuotaGrupal()
-    if not formulario.validate_on_submit():
-        mostrar_errores_de_formulario(formulario)
-        return render_template('aportante/cuota.html',
-                               **datos_del_formulario(es_grupal=True)), 400
 
+    errores = []
+
+    # 1. Errores del FlaskForm
+    formulario.validate_on_submit()
+
+    for errores_campo in formulario.errors.values():
+        errores.extend(errores_campo)
+
+
+    # 2. Fecha
+    if not formulario.fecha.data:
+        errores.append('Debe ingresar una fecha válida.')
+
+
+    # 3. Personas
+    personas, montos = leer_personas_del_formulario()
+
+    _, errores_personas = servicio_grupales.normalizar_personas(personas)
+    errores.extend(errores_personas)
+
+    # 4. Comprobante
+    archivo = request.files.get('comprobante')
+
+    if not archivo or not archivo.filename:
+        errores.append(
+            'Tenés que adjuntar el comprobante de la transferencia.'
+        )
+
+    # 5. N° operación
+    
+    if not (formulario.codigo_transaccion.data or '').strip():
+        errores.append('El número de operación es obligatorio.')
+
+    if errores:
+        for error in errores:
+            flash(error, 'danger')
+
+        return render_template(
+            'aportante/cuota.html',
+            **datos_del_formulario(es_grupal=True)
+        ), 400
+        
     try:
-        personas, montos = leer_personas_del_formulario()
 
         data = {
             'codigo_transaccion': formulario.codigo_transaccion.data,
