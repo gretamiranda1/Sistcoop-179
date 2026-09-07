@@ -3,9 +3,11 @@ from flask_login import login_user, logout_user, login_required, current_user
 from datetime import datetime
 
 from app.extensions import db
+from app.formularios.autenticacion import FormularioLogin
 from app.modelos.usuarios import Usuario
 from app.servicios import auditoria as servicio_auditoria
 from app.utilidades.limite_peticiones import excede_limite
+from app.utilidades.peticion import ip_y_user_agent
 
 autenticacion_bp = Blueprint('autenticacion', __name__)
 
@@ -16,6 +18,8 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for('administracion.panel'))
 
+    formulario = FormularioLogin()
+
     if request.method == 'POST':
         # Tope de intentos por IP, para que no se pueda ir probando
         # contraseñas de a miles
@@ -23,8 +27,9 @@ def login():
             flash('Demasiados intentos de acceso. Esperá unos minutos.', 'warning')
             return render_template('auth/login.html')
 
-        username = (request.form.get('username') or '').strip()
-        password = request.form.get('password') or ''
+        username = (formulario.username.data or '').strip()
+        password = formulario.password.data or ''
+        ip, user_agent = ip_y_user_agent()
 
         usuario = Usuario.query.filter_by(username=username).first()
 
@@ -34,7 +39,7 @@ def login():
 
             servicio_auditoria.registrar(usuario=str(usuario.id), accion='login',
                                          tabla='usuarios', registro_id=usuario.id,
-                                         request=request)
+                                         ip=ip, user_agent=user_agent)
             db.session.commit()
 
             flash('Bienvenido, {}.'.format(usuario.nombre or usuario.username), 'success')
@@ -44,7 +49,7 @@ def login():
         # la contraseña: decirlo le confirma a quien prueba qué usuarios existen
         servicio_auditoria.registrar(usuario=username or 'desconocido',
                                      accion='login_fallido', tabla='usuarios',
-                                     request=request)
+                                     ip=ip, user_agent=user_agent)
         db.session.commit()
         flash('Usuario o contraseña incorrectos.', 'danger')
 
@@ -54,9 +59,10 @@ def login():
 @autenticacion_bp.route('/logout')
 @login_required
 def logout():
+    ip, user_agent = ip_y_user_agent()
     servicio_auditoria.registrar(usuario=str(current_user.id), accion='logout',
                                  tabla='usuarios', registro_id=current_user.id,
-                                 request=request)
+                                 ip=ip, user_agent=user_agent)
     db.session.commit()
 
     logout_user()

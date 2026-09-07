@@ -8,7 +8,8 @@ from app.extensions import db
 from app.modelos.auditoria import Auditoria
 
 
-def registrar(usuario, accion, tabla=None, registro_id=None, detalle=None, request=None):
+def registrar(usuario, accion, tabla=None, registro_id=None, detalle=None,
+              ip=None, user_agent=None):
     """Deja anotado quién hizo qué.
 
     `usuario` es el id del usuario logueado, o el texto 'portal-publico'
@@ -25,9 +26,10 @@ def registrar(usuario, accion, tabla=None, registro_id=None, detalle=None, reque
         detalle=detalle
     )
 
-    if request:
-        renglon.ip = request.remote_addr
-        renglon.user_agent = request.headers.get('User-Agent', '')
+    if ip:
+        renglon.ip = ip
+    if user_agent:
+        renglon.user_agent = user_agent
 
     db.session.add(renglon)
     return renglon

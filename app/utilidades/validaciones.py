@@ -32,15 +32,20 @@ def limpiar_dni(dni):
     return limpio
 
 
-def validar_dni(dni):
-    """DNI argentino: 7 u 8 dígitos."""
-    limpio = limpiar_dni(dni)
 
-    if len(limpio) < 7 or len(limpio) > 8:
+
+def validar_dni(dni):
+    
+    """DNI argentino: 7 u 8 dígitos."""
+    texto = str(dni or '').strip()
+
+    if not texto.isdigit():
         return False
 
-    # 00000000 o 11111111 son datos de relleno, no un documento
-    if len(set(limpio)) == 1:
+    if len(texto) < 7 or len(texto) > 8:
+        return False
+
+    if len(set(texto)) == 1:
         return False
 
     return True
@@ -113,11 +118,14 @@ def validar_nombre(nombre):
 # IMPORTES
 # ============================================
 
+IMPORTE_MINIMO = 1
+IMPORTE_MAXIMO = 1000000
+
+
 def validar_importe(importe):
     """Devuelve (es_valido, mensaje_de_error).
 
-    Un importe válido es un número mayor a cero. Lo usamos en todos los
-    formularios que piden plata.
+    Un importe válido debe estar dentro de los rangos permitidos.
     """
     if importe is None or importe == '':
         return False, 'Falta el importe.'
@@ -127,8 +135,11 @@ def validar_importe(importe):
     except (ValueError, TypeError):
         return False, 'El importe no es un número válido.'
 
-    if valor <= 0:
-        return False, 'El importe tiene que ser mayor a cero.'
+    if valor < IMPORTE_MINIMO:
+        return False, f'El importe debe ser mayor o igual a ${IMPORTE_MINIMO}.'
+
+    if valor > IMPORTE_MAXIMO:
+        return False, f'El importe debe ser menor o igual a ${IMPORTE_MAXIMO}.'
 
     return True, None
 
@@ -137,15 +148,31 @@ def validar_importe(importe):
 # FECHAS
 # ============================================
 
-def validar_fecha(fecha_texto):
-    """Fecha en formato AAAA-MM-DD. Devuelve (es_valida, mensaje_de_error)."""
+def _a_fecha_o_none(fecha_texto):
+    """Convierte 'AAAA-MM-DD' a date. Si ya es una date, la devuelve tal cual.
+
+    Los formularios web (app/formularios/) ya convierten el texto validado a
+    date antes de llamarlo al servicio; los llamadores que no pasan por un
+    formulario (scripts, cargas masivas) siguen mandando el texto crudo. Esta
+    función es la que hace que las de más abajo sirvan para los dos casos sin
+    repetir la conversión en cada una.
+    """
+    if isinstance(fecha_texto, date):
+        return fecha_texto
     try:
-        fecha = datetime.strptime(fecha_texto, '%Y-%m-%d').date()
+        return datetime.strptime(fecha_texto, '%Y-%m-%d').date()
     except (ValueError, TypeError):
+        return None
+
+
+def validar_fecha(fecha_texto):
+    """Fecha en formato AAAA-MM-DD, o ya como date. Devuelve (es_valida, mensaje_de_error)."""
+    fecha = _a_fecha_o_none(fecha_texto)
+    if fecha is None:
         return False, 'La fecha no tiene un formato válido.'
 
     if fecha.year < 1900 or fecha.year > 2100:
-        return False, 'El año de la fecha no es razonable.'
+        return False, 'La fecha ingresada está fuera del rango permitido.'
 
     return True, None
 
@@ -160,22 +187,18 @@ def validar_fecha_transferencia(fecha_texto):
     if not valida:
         return False, mensaje
 
-    fecha = datetime.strptime(fecha_texto, '%Y-%m-%d').date()
+    fecha = _a_fecha_o_none(fecha_texto)
     hoy = date.today()
 
     if fecha > hoy:
         return False, 'La fecha de la transferencia no puede ser futura.'
 
     if fecha < hoy - timedelta(days=DIAS_MAXIMOS_HACIA_ATRAS):
-        return False, ('La fecha de la transferencia es demasiado vieja. '
-                       'Fijate que el año esté bien escrito.')
+        return False, ('La fecha ingresada está fuera del rango permitido')
 
     return True, None
 
 
 def texto_a_fecha(fecha_texto):
     """Pasa un 'AAAA-MM-DD' a fecha. Si no se puede, devuelve la de hoy."""
-    try:
-        return datetime.strptime(fecha_texto, '%Y-%m-%d').date()
-    except (ValueError, TypeError):
-        return date.today()
+    return _a_fecha_o_none(fecha_texto) or date.today()

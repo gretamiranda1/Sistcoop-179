@@ -14,16 +14,7 @@ from datetime import datetime
 
 from flask import current_app
 
-# Formatos que aceptamos, con la extensión con la que los guardamos.
-# La clave es la firma: los primeros bytes que tiene todo archivo de ese tipo.
-FIRMAS = [
-    (b'\xff\xd8\xff', '.jpg'),
-    (b'\x89PNG\r\n\x1a\n', '.png'),
-    (b'%PDF-', '.pdf'),
-]
-
-TAMANIO_MAXIMO = 16 * 1024 * 1024   # 16 MB
-TAMANIO_MINIMO = 1024               # 1 KB: menos que esto no es un comprobante
+from app.constantes import FIRMAS_ARCHIVO, TAMANIO_MAXIMO_COMPROBANTE, TAMANIO_MINIMO_COMPROBANTE
 
 
 class ArchivoInvalido(Exception):
@@ -41,7 +32,7 @@ def detectar_extension(cabecera):
     porque la extensión la elige quien sube el archivo: se puede llamar
     "comprobante.pdf" y ser cualquier otra cosa.
     """
-    for firma, extension in FIRMAS:
+    for firma, extension in FIRMAS_ARCHIVO:
         if cabecera.startswith(firma):
             return extension
     return None
@@ -70,10 +61,10 @@ def guardar_comprobante(archivo):
     contenido = archivo.read()
     tamanio = len(contenido)
 
-    if tamanio > TAMANIO_MAXIMO:
+    if tamanio > TAMANIO_MAXIMO_COMPROBANTE:
         raise ArchivoInvalido('El comprobante pesa más de 16 MB. Probá sacarle '
                               'una foto con menos resolución.')
-    if tamanio < TAMANIO_MINIMO:
+    if tamanio < TAMANIO_MINIMO_COMPROBANTE:
         raise ArchivoInvalido('El archivo está vacío o dañado. Volvé a adjuntarlo.')
 
     extension = detectar_extension(contenido[:16])

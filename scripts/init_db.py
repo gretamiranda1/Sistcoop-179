@@ -24,7 +24,7 @@ from app.modelos.usuarios import Usuario
 from app.modelos.carreras import Carrera
 from app.modelos.ejercicios import Ejercicio
 from app.modelos.fondos import Fondo
-from app.data.carreras import CARRERAS
+from seeds.carreras import CARRERAS
 
 
 def generar_contrasena(largo=16):

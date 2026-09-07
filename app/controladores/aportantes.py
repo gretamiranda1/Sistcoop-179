@@ -15,12 +15,16 @@ que corresponde y mostrar la pantalla. Las reglas de negocio están en
 app/servicios/.
 """
 
-from datetime import datetime
+from decimal import Decimal
 
 from flask import (Blueprint, render_template, request, redirect, url_for,
-                   flash, jsonify, current_app)
+                   flash, current_app)
 
+from app.constantes import ANIOS
 from app.extensions import db
+from app.formularios.adicional import FormularioAporteCarrera, FormularioAporteGeneral
+from app.formularios.cuota import FormularioCuotaGrupal, FormularioCuotaIndividual
+from app.formularios.solicitudes import FormularioDuplicadoLibreta, FormularioSolicitudFondos
 from app.modelos.aportantes import Aportante
 from app.modelos.carreras import Carrera
 from app.modelos.ejercicios import Ejercicio
@@ -35,10 +39,9 @@ from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante
 from app.utilidades.limite_peticiones import excede_limite
+from app.utilidades.peticion import ip_y_user_agent
 
 aportantes_bp = Blueprint('aportantes', __name__)
-
-ANIOS = ['1°', '2°', '3°']
 
 
 # ============================================
@@ -61,6 +64,13 @@ def mostrar_errores(error):
         mensajes = [str(error)]
     for mensaje in mensajes:
         flash(mensaje, 'danger')
+
+
+def mostrar_errores_de_formulario(formulario):
+    """Mismo patrón que mostrar_errores(): un flash por cada mensaje."""
+    for errores_campo in formulario.errors.values():
+        for mensaje in errores_campo:
+            flash(mensaje, 'danger')
 
 
 def datos_del_formulario(**extra):
@@ -114,22 +124,29 @@ def pagar_cuota():
 
 
 def procesar_cuota_individual():
+    formulario = FormularioCuotaIndividual()
+    if not formulario.validate_on_submit():
+        mostrar_errores_de_formulario(formulario)
+        return render_template('aportante/cuota.html', **datos_del_formulario()), 400
+
     try:
         data = {
-            'nombre': request.form.get('nombre'),
-            'apellido': request.form.get('apellido'),
-            'dni': request.form.get('dni'),
-            'carrera_id': request.form.get('carrera_id') or None,
-            'anio': request.form.get('anio') or None,
-            'importe': request.form.get('importe'),
-            'fecha': request.form.get('fecha'),
-            'codigo_transaccion': request.form.get('codigo_transaccion'),
-            'observaciones': request.form.get('observaciones'),
-            'solicita_libreta': request.form.get('solicita_libreta') == 'true',
+            'nombre': formulario.nombre.data,
+            'apellido': formulario.apellido.data,
+            'dni': formulario.dni.data,
+            'carrera_id': formulario.carrera_id.data or None,
+            'anio': formulario.anio.data or None,
+            'importe': Decimal(formulario.importe.data),
+            'fecha': (validaciones.texto_a_fecha(formulario.fecha.data)
+                     if formulario.fecha.data else None),
+            'codigo_transaccion': formulario.codigo_transaccion.data,
+            'observaciones': formulario.observaciones.data,
+            'solicita_libreta': formulario.solicita_libreta.data == 'true',
         }
         data.update(leer_comprobante())
 
-        pago, saldo = servicio_pagos.crear_pago_de_cuota(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago, saldo = servicio_pagos.crear_pago_de_cuota(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -183,20 +200,28 @@ def leer_personas_del_formulario():
 
 
 def procesar_cuota_grupal():
+    formulario = FormularioCuotaGrupal()
+    if not formulario.validate_on_submit():
+        mostrar_errores_de_formulario(formulario)
+        return render_template('aportante/cuota.html',
+                               **datos_del_formulario(es_grupal=True)), 400
+
     try:
         personas, montos = leer_personas_del_formulario()
 
         data = {
-            'codigo_transaccion': request.form.get('codigo_transaccion'),
-            'importe_total': request.form.get('importe_total'),
-            'fecha': request.form.get('fecha'),
+            'codigo_transaccion': formulario.codigo_transaccion.data,
+            'importe_total': Decimal(formulario.importe_total.data),
+            'fecha': (validaciones.texto_a_fecha(formulario.fecha.data)
+                     if formulario.fecha.data else None),
             'personas': personas,
-            'tipo_distribucion': request.form.get('tipo_distribucion', 'auto'),
+            'tipo_distribucion': formulario.tipo_distribucion.data or 'auto',
             'montos': montos,
         }
         data.update(leer_comprobante('comprobante'))
 
-        grupal, resumen = servicio_grupales.procesar_pago_grupal(data, request)
+        ip, user_agent = ip_y_user_agent()
+        grupal, resumen = servicio_grupales.procesar_pago_grupal(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito_grupal',
                                 codigo=grupal.codigo_seguimiento))
 
@@ -224,28 +249,38 @@ def aporte_adicional():
     if request.form.get('tipo_aporte') == 'carrera':
         destino = 'carrera'
         tipo = 'aporte_carrera'
+        formulario = FormularioAporteCarrera()
     else:
         destino = 'capital'
         tipo = 'adicional'
+        formulario = FormularioAporteGeneral()
+
+    if not formulario.validate_on_submit():
+        mostrar_errores_de_formulario(formulario)
+        return render_template('aportante/adicional.html',
+                               **datos_del_formulario(tab_activa=destino)), 400
 
     try:
+        carrera_id = formulario.carrera_id.data or None if destino == 'carrera' else None
         data = {
-            'nombre': request.form.get('nombre'),
-            'apellido': request.form.get('apellido'),
-            'dni': request.form.get('dni'),
-            'cuit': request.form.get('cuit'),
-            'carrera_id': request.form.get('carrera_id') or None,
+            'nombre': formulario.nombre.data,
+            'apellido': formulario.apellido.data,
+            'dni': formulario.dni.data,
+            'cuit': formulario.cuit.data,
+            'carrera_id': carrera_id,
             'destino': destino,
-            'carrera_destino_id': request.form.get('carrera_id') or None,
+            'carrera_destino_id': carrera_id,
             'tipo': tipo,
-            'importe': request.form.get('importe'),
-            'fecha': request.form.get('fecha'),
-            'codigo_transaccion': request.form.get('codigo_transaccion'),
-            'observaciones': request.form.get('observaciones'),
+            'importe': Decimal(formulario.importe.data),
+            'fecha': (validaciones.texto_a_fecha(formulario.fecha.data)
+                     if formulario.fecha.data else None),
+            'codigo_transaccion': formulario.codigo_transaccion.data,
+            'observaciones': formulario.observaciones.data,
         }
         data.update(leer_comprobante())
 
-        pago = servicio_pagos.crear_pago_publico(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago = servicio_pagos.crear_pago_publico(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -288,30 +323,38 @@ def procesar_solicitud_libreta():
     comprobante y número de operación, y la Cooperadora lo tiene que verificar
     igual que cualquier otro ingreso.
     """
+    formulario = FormularioDuplicadoLibreta()
+    if not formulario.validate_on_submit():
+        mostrar_errores_de_formulario(formulario)
+        return render_template('aportante/solicitud.html',
+                               **datos_del_formulario(tab_activa='libreta')), 400
+
     try:
-        motivo = request.form.get('motivo', '')
+        motivo = formulario.motivo.data or ''
         texto = 'Motivo: ' + MOTIVOS_LIBRETA.get(motivo, 'no especificado')
 
-        aclaracion = (request.form.get('observaciones') or '').strip()
+        aclaracion = (formulario.observaciones.data or '').strip()
         if aclaracion:
             texto = texto + ' | ' + aclaracion
 
         data = {
-            'nombre': request.form.get('nombre'),
-            'apellido': request.form.get('apellido'),
-            'dni': request.form.get('dni'),
-            'carrera_id': request.form.get('carrera_id') or None,
-            'anio': request.form.get('anio') or None,
+            'nombre': formulario.nombre.data,
+            'apellido': formulario.apellido.data,
+            'dni': formulario.dni.data,
+            'carrera_id': formulario.carrera_id.data or None,
+            'anio': formulario.anio.data or None,
             'tipo': 'libreta_duplicado',
-            'importe': request.form.get('importe'),
-            'fecha': request.form.get('fecha'),
-            'codigo_transaccion': request.form.get('codigo_transaccion'),
+            'importe': Decimal(formulario.importe.data),
+            'fecha': (validaciones.texto_a_fecha(formulario.fecha.data)
+                     if formulario.fecha.data else None),
+            'codigo_transaccion': formulario.codigo_transaccion.data,
             'observaciones': texto,
             'solicita_libreta': True,
         }
         data.update(leer_comprobante())
 
-        pago = servicio_pagos.crear_pago_publico(data, request)
+        ip, user_agent = ip_y_user_agent()
+        pago = servicio_pagos.crear_pago_publico(data, ip=ip, user_agent=user_agent)
         return redirect(url_for('aportantes.exito', codigo=pago.codigo_seguimiento))
 
     except (ErrorDeCarga, ArchivoInvalido) as error:
@@ -325,67 +368,35 @@ def procesar_solicitud_libreta():
                            **datos_del_formulario(tab_activa='libreta')), 400
 
 
-def validar_solicitud_de_fondos():
-    """Controla el formulario de pedido de fondos. Devuelve la lista de errores."""
-    errores = []
-
-    if not (request.form.get('responsable') or '').strip():
-        errores.append('Falta el nombre del responsable.')
-    if not (request.form.get('contacto') or '').strip():
-        errores.append('Falta un teléfono o correo de contacto.')
-    if not (request.form.get('concepto') or '').strip():
-        errores.append('Falta el concepto de la solicitud.')
-
-    justificacion = (request.form.get('justificacion') or '').strip()
-    if len(justificacion) < 20:
-        errores.append('La justificación tiene que explicar el pedido: escribí '
-                       'al menos un par de renglones.')
-
-    if request.form.get('tipo') not in ('fondos', 'evento', 'viaje'):
-        errores.append('Elegí qué estás solicitando.')
-
-    importe_ok, mensaje = validaciones.validar_importe(request.form.get('importe'))
-    if not importe_ok:
-        errores.append(mensaje)
-
-    if request.form.get('fecha_estimada'):
-        fecha_ok, mensaje = validaciones.validar_fecha(request.form['fecha_estimada'])
-        if not fecha_ok:
-            errores.append(mensaje)
-
-    return errores
-
-
 def procesar_solicitud_fondos():
     """Pedido de fondos, evento o viaje de un curso o un docente."""
-    try:
-        errores = validar_solicitud_de_fondos()
-        if errores:
-            raise ErrorDeCarga(errores)
+    formulario = FormularioSolicitudFondos()
+    if not formulario.validate_on_submit():
+        mostrar_errores_de_formulario(formulario)
+        return render_template('aportante/solicitud.html', **datos_del_formulario()), 400
 
-        fecha_estimada = request.form.get('fecha_estimada')
-        if fecha_estimada:
-            fecha = datetime.strptime(fecha_estimada, '%Y-%m-%d').date()
-        else:
-            fecha = None
+    try:
+        fecha_estimada = (validaciones.texto_a_fecha(formulario.fecha_estimada.data)
+                          if formulario.fecha_estimada.data else None)
 
         pedido = SolicitudFondo(
             codigo_seguimiento=generar_codigo('SF'),
-            responsable=request.form['responsable'].strip(),
-            contacto=request.form['contacto'].strip(),
-            carrera_id=request.form.get('carrera_id') or None,
-            curso=(request.form.get('curso') or '').strip() or None,
-            tipo=request.form['tipo'],
-            concepto=request.form['concepto'].strip(),
-            importe_estimado=round(float(request.form['importe']), 2),
-            fecha_estimada=fecha,
-            justificacion=request.form['justificacion'].strip()
+            responsable=formulario.responsable.data,
+            contacto=formulario.contacto.data,
+            carrera_id=formulario.carrera_id.data or None,
+            curso=formulario.curso.data or None,
+            tipo=formulario.tipo.data,
+            concepto=formulario.concepto.data,
+            importe_estimado=Decimal(str(round(float(formulario.importe.data), 2))),
+            fecha_estimada=fecha_estimada,
+            justificacion=formulario.justificacion.data
         )
         db.session.add(pedido)
         # flush() manda el INSERT a la base y le asigna el id a la fila, pero
         # todavía no confirma nada: eso lo hace el commit del final.
         db.session.flush()
 
+        ip, user_agent = ip_y_user_agent()
         auditoria.registrar(
             usuario='portal-publico',
             accion='cargar_solicitud_fondos',
@@ -393,7 +404,8 @@ def procesar_solicitud_fondos():
             registro_id=pedido.id,
             detalle={'codigo_seguimiento': pedido.codigo_seguimiento,
                      'tipo': pedido.tipo},
-            request=request
+            ip=ip,
+            user_agent=user_agent
         )
         db.session.commit()
 
@@ -530,88 +542,3 @@ def buscar_por_dni(contexto):
         contexto['saldo'] = SaldoAportante.get_por_aportante(aportante.id, ejercicio.id)
 
     return render_template('aportante/seguimiento.html', **contexto)
-
-
-# ============================================
-# RUTAS QUE USA EL JAVASCRIPT DE LOS FORMULARIOS
-# ============================================
-#
-# Son todas POST, así que Flask-WTF les pide el token CSRF. El JavaScript lo
-# manda en la cabecera X-CSRFToken (ver sistcoop.js). Si no lo mandara, el
-# servidor contestaría 400 y ninguna validación en vivo funcionaría.
-
-@aportantes_bp.route('/api/validar-dni', methods=['POST'])
-def api_validar_dni():
-    """Dice si el DNI tiene formato válido.
-
-    No devuelve ningún dato de la persona. La versión anterior devolvía
-    nombre, apellido y carrera de cualquier DNI, así que probando números se
-    podía armar un padrón de alumnos (RNF-02).
-    """
-    if excede_limite('api_dni', limite=30, ventana=60):
-        return jsonify({'error': 'Demasiadas consultas seguidas.'}), 429
-
-    datos = request.get_json(silent=True) or {}
-    valido = validaciones.validar_dni(datos.get('dni', ''))
-
-    return jsonify({
-        'valido': valido,
-        'mensaje': '' if valido else 'El DNI tiene que tener 7 u 8 dígitos, sin puntos.'
-    })
-
-
-@aportantes_bp.route('/api/validar-cuit', methods=['POST'])
-def api_validar_cuit():
-    if excede_limite('api_cuit', limite=30, ventana=60):
-        return jsonify({'error': 'Demasiadas consultas seguidas.'}), 429
-
-    datos = request.get_json(silent=True) or {}
-    cuit = datos.get('cuit', '')
-    valido = validaciones.validar_cuit(cuit)
-
-    return jsonify({
-        'valido': valido,
-        'formateado': validaciones.formatear_cuit(cuit) if valido else None,
-        'mensaje': 'CUIT válido' if valido
-                   else 'El CUIT no es válido. Revisá el dígito verificador.'
-    })
-
-
-@aportantes_bp.route('/api/validar-transaccion', methods=['POST'])
-def api_validar_transaccion():
-    """Avisa si el número de operación ya se usó (RF-04)."""
-    if excede_limite('api_transaccion', limite=30, ventana=60):
-        return jsonify({'error': 'Demasiadas consultas seguidas.'}), 429
-
-    datos = request.get_json(silent=True) or {}
-    en_uso = servicio_pagos.codigo_transaccion_en_uso((datos.get('codigo') or '').strip())
-
-    return jsonify({
-        'disponible': not en_uso,
-        'mensaje': 'Ese número ya fue cargado en otro pago.' if en_uso
-                   else 'El número no figura cargado.'
-    })
-
-
-@aportantes_bp.route('/api/estado-cuota', methods=['POST'])
-def api_estado_cuota():
-    """Cómo viene la cuota del DNI en el ejercicio vigente.
-
-    Alimenta el cuadro que el aportante ve antes de mandar el formulario.
-    Devuelve importes, nunca datos personales.
-    """
-    if excede_limite('api_estado', limite=20, ventana=60):
-        return jsonify({'error': 'Demasiadas consultas seguidas.'}), 429
-
-    datos = request.get_json(silent=True) or {}
-    dni = datos.get('dni', '')
-
-    if not validaciones.validar_dni(dni):
-        return jsonify({'disponible': False})
-
-    estado = servicio_pagos.estado_de_cuota(dni)
-    if not estado:
-        return jsonify({'disponible': False})
-
-    estado['disponible'] = True
-    return jsonify(estado)
