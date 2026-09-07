@@ -42,14 +42,16 @@ def normalizar_personas(filas):
 
     for fila in filas:
         numero = numero + 1
-        dni = validaciones.limpiar_dni(fila.get('dni'))
+
+        dni = (fila.get('dni') or '').strip()
 
         if not dni:
             continue
 
         if not validaciones.validar_dni(dni):
-            errores.append('Persona {}: el DNI "{}" no es válido.'.format(
-                numero, fila.get('dni')))
+            errores.append(
+                'Persona {}: DNI inválido. Ingrese únicamente números.'.format(numero)
+            )
             continue
 
         if dni in dnis_ya_vistos:
