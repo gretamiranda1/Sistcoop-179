@@ -6,7 +6,7 @@
 {% block content %}
 
 <div class="sc-encabezado">
-    <h1>Consultar el estado de un aporte</h1>
+    <h1>Consultar el estado de los aporte</h1>
     <p>Averiguá si la Cooperadora ya verificó lo que cargaste.</p>
 </div>
 
@@ -19,7 +19,7 @@
                         data-bs-toggle="tab" data-bs-target="#panel-codigo" type="button"
                         role="tab" aria-controls="panel-codigo"
                         aria-selected="{{ 'false' if dni else 'true' }}">
-                    <i class="bi bi-upc-scan" aria-hidden="true"></i> Por código de seguimiento
+                    <i class="bi bi-upc-scan" aria-hidden="true"></i> Consulta de movimiento
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -27,7 +27,7 @@
                         data-bs-toggle="tab" data-bs-target="#panel-dni" type="button"
                         role="tab" aria-controls="panel-dni"
                         aria-selected="{{ 'true' if dni else 'false' }}">
-                    <i class="bi bi-person-vcard" aria-hidden="true"></i> Por DNI
+                    <i class="bi bi-person-vcard" aria-hidden="true"></i> Consulta de aportes
                 </button>
             </li>
         </ul>
