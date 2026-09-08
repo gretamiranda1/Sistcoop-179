@@ -479,9 +479,12 @@ def seguimiento():
     contexto = {
         'pagos': [], 'saldo': None, 'dni': None, 'codigo': None,
         'pago_unico': None, 'grupal': None, 'solicitud': None,
+        'paginacion':None,
     }
 
-    if request.method == 'GET':
+    # El DNI llega por GET (para que el link de "página siguiente" pueda
+    # reenviarlo en la URL); el código, por POST, como antes.
+    if request.method == 'GET' and not request.args.get('dni'):
         return render_template('aportante/seguimiento.html', **contexto)
 
     if excede_limite('seguimiento', limite=15, ventana=60):
@@ -489,7 +492,7 @@ def seguimiento():
               'intentar.', 'warning')
         return render_template('aportante/seguimiento.html', **contexto)
 
-    if request.form.get('modo') == 'codigo':
+    if request.method == 'POST' and request.form.get('modo') == 'codigo':
         return buscar_por_codigo(contexto)
     return buscar_por_dni(contexto)
 
@@ -524,7 +527,9 @@ def buscar_por_codigo(contexto):
 
 
 def buscar_por_dni(contexto):
-    dni = validaciones.limpiar_dni(request.form.get('dni'))
+    # request.values junta el DNI venga por querystring (GET, para poder
+    # paginar) o por formulario (POST, la búsqueda inicial).
+    dni = validaciones.limpiar_dni(request.values.get('dni'))
     contexto['dni'] = dni
 
     if not validaciones.validar_dni(dni):
@@ -536,9 +541,10 @@ def buscar_por_dni(contexto):
         flash('No hay aportes cargados con ese DNI.', 'info')
         return render_template('aportante/seguimiento.html', **contexto)
 
-    contexto['pagos'] = Pago.query.filter_by(
-        aportante_id=aportante.id
-    ).order_by(Pago.created_at.desc()).all()
+    pagina = request.values.get('pagina', 1, type=int)
+    paginacion = Pago.get_por_aportante(aportante.id, pagina)
+    contexto['pagos'] = paginacion.items
+    contexto['paginacion'] = paginacion
 
     ejercicio = Ejercicio.get_ejercicio_vigente()
     if ejercicio:

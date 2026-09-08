@@ -55,8 +55,10 @@ def panel():
         puede_editar_cuota = False
         motivo_cuota = 'No hay ejercicio vigente.'
 
-    pendientes = Pago.get_pendientes()
-    grupales_pendientes = PagoGrupal.get_pendientes()
+    pagina_pendientes = request.args.get('pagina_pendientes', 1, type=int)
+    pagina_grupales = request.args.get('pagina_grupales', 1, type=int)
+    pendientes = Pago.get_pendientes(pagina_pendientes)
+    grupales_pendientes = PagoGrupal.get_pendientes(pagina_grupales)
     solicitudes = SolicitudFondo.query.filter_by(estado='pendiente').order_by(
         SolicitudFondo.created_at.asc()).all()
 
