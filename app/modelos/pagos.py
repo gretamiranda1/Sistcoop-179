@@ -149,9 +149,16 @@ class Pago(db.Model):
         ).first()
 
     @classmethod
-    def get_pendientes(cls):
-        """Pagos esperando verificación, del más viejo al más nuevo."""
-        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).all()
+    def get_pendientes(cls, pagina=1, por_pagina=20):
+        """Pagos esperando verificación, del más viejo al más nuevo, paginados."""
+        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).paginate(
+            page=pagina, per_page=por_pagina, error_out=False)
+
+    @classmethod
+    def get_por_aportante(cls, aportante_id, pagina=1, por_pagina=20):
+        """Pagos de una persona, del más nuevo al más viejo, paginados."""
+        return cls.query.filter_by(aportante_id=aportante_id).order_by(
+            cls.created_at.desc()).paginate(page=pagina, per_page=por_pagina, error_out=False)
 
     @classmethod
     def get_de_cuota(cls, aportante_id, ejercicio_id, estado):

@@ -56,8 +56,9 @@ class PagoGrupal(db.Model):
         return cls.query.filter_by(hash_comprobante=huella).first()
 
     @classmethod
-    def get_pendientes(cls):
-        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).all()
+    def get_pendientes(cls, pagina=1, por_pagina=20):
+        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).paginate(
+            page=pagina, per_page=por_pagina, error_out=False)
 
     def __repr__(self):
         return '<PagoGrupal {}: ${}>'.format(self.codigo_seguimiento, self.importe_total)

@@ -58,10 +58,10 @@
                 Contrastalos contra el extracto del Banco Provincia antes de verificarlos.
             </p>
         </div>
-        <span class="sc-etiqueta">{{ pendientes|length }} pendiente{{ 's' if pendientes|length != 1 }}</span>
+        <span class="sc-etiqueta">{{ pendientes.total }} pendiente{{ 's' if pendientes.total != 1 }}</span>
     </div>
 
-    {% if pendientes %}
+    {% if pendientes.items %}
     <div class="table-responsive">
         <table class="table sc-tabla">
             <thead>
@@ -76,7 +76,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for pago in pendientes %}
+                {% for pago in pendientes.items %}
                 <tr>
                     <td><span class="sc-codigo">{{ pago.codigo_seguimiento }}</span></td>
                     <td>
@@ -116,6 +116,21 @@
             </tbody>
         </table>
     </div>
+    {% if pendientes.pages > 1 %}
+    <div class="card-body border-top d-flex justify-content-between align-items-center">
+        <span class="sc-ayuda">Página {{ pendientes.page }} de {{ pendientes.pages }}</span>
+        <div class="d-flex gap-2">
+            {% if pendientes.has_prev %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.prev_num) }}">Anterior</a>
+            {% endif %}
+            {% if pendientes.has_next %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.next_num) }}">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
     {% else %}
     <div class="card-body sc-vacio">
         <i class="bi bi-check2-circle sc-vacio-icono" aria-hidden="true"></i>
@@ -127,7 +142,7 @@
 {# ---------------------------------------------------------------- #}
 {# Transferencias grupales pendientes                               #}
 {# ---------------------------------------------------------------- #}
-{% if grupales_pendientes %}
+{% if grupales_pendientes.items %}
 <div class="card mb-4">
     <div class="card-header">
         <h2>Transferencias grupales por verificar</h2>
@@ -148,7 +163,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for grupal in grupales_pendientes %}
+                {% for grupal in grupales_pendientes.items %}
                 <tr>
                     <td><span class="sc-codigo">{{ grupal.codigo_seguimiento }}</span></td>
                     <td>
@@ -183,6 +198,21 @@
             </tbody>
         </table>
     </div>
+    {% if grupales_pendientes.pages > 1 %}
+    <div class="card-body border-top d-flex justify-content-between align-items-center">
+        <span class="sc-ayuda">Página {{ grupales_pendientes.page }} de {{ grupales_pendientes.pages }}</span>
+        <div class="d-flex gap-2">
+            {% if grupales_pendientes.has_prev %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.prev_num) }}">Anterior</a>
+            {% endif %}
+            {% if grupales_pendientes.has_next %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.next_num) }}">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -307,7 +337,7 @@
 {# ---------------------------------------------------------------- #}
 {# Ventanas de verificación y rechazo                               #}
 {# ---------------------------------------------------------------- #}
-{% for pago in pendientes %}
+{% for pago in pendientes.items %}
 <div class="modal fade" id="verificar-{{ pago.id }}" tabindex="-1"
      aria-labelledby="verificar-titulo-{{ pago.id }}" aria-hidden="true">
     <div class="modal-dialog">
@@ -380,7 +410,7 @@
 </div>
 {% endfor %}
 
-{% for grupal in grupales_pendientes %}
+{% for grupal in grupales_pendientes.items %}
 <div class="modal fade" id="rechazar-grupal-{{ grupal.id }}" tabindex="-1"
      aria-labelledby="rechazar-grupal-titulo-{{ grupal.id }}" aria-hidden="true">
     <div class="modal-dialog">
