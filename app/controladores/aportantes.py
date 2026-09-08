@@ -504,6 +504,9 @@ def buscar_por_codigo(contexto):
         if pago.ejercicio_id:
             contexto['saldo'] = SaldoAportante.get_por_aportante(
                 pago.aportante_id, pago.ejercicio_id)
+        contexto['pagos'] = Pago.query.filter_by(
+            aportante_id=pago.aportante_id
+        ).order_by(Pago.created_at.desc()).all()
         return render_template('aportante/seguimiento.html', **contexto)
 
     grupal = PagoGrupal.get_by_codigo_seguimiento(codigo)
