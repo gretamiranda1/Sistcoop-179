@@ -224,15 +224,32 @@ function validarCuit(idInput, idEstado) {
         return;
     }
 
+input.addEventListener('input', function () {
+    let valor = input.value.replace(/\D/g, '');
+
+    valor = valor.slice(0, 11);
+
+    if (valor.length >= 11) {
+        valor =
+            valor.slice(0, 2) + '-' +
+            valor.slice(2, 10) + '-' +
+            valor.slice(10);
+    } else if (valor.length > 2) {
+        valor = valor.slice(0, 2) + '-' + valor.slice(2);
+    }
+
+    input.value = valor;
+    });
+
     input.addEventListener('blur', function () {
         var cuit = input.value.trim();
+
         input.classList.remove('is-valid', 'is-invalid');
 
         if (!cuit) {
             mostrarMensaje(estado, '');
             return;
         }
-
         consultarApi('/aportante/api/validar-cuit', { cuit: cuit })
             .then(function (datos) {
                 if (datos.valido) {
