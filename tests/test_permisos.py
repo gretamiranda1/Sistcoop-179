@@ -18,3 +18,18 @@ def test_vista_de_admin_deja_pasar_al_rol_correcto(app, client, admin, iniciar_s
     respuesta = client.get('/admin/', follow_redirects=False)
 
     assert respuesta.status_code == 200
+
+
+def test_usuario_desactivado_pierde_el_acceso_en_la_siguiente_peticion(
+        app, client, admin, iniciar_sesion, db):
+    iniciar_sesion(client, admin)
+    assert client.get('/admin/').status_code == 200
+
+    # La Cooperadora lo desactiva a mitad de sesión
+    admin.activo = False
+    db.session.commit()
+
+    respuesta = client.get('/admin/', follow_redirects=False)
+
+    assert respuesta.status_code == 302
+    assert respuesta.headers['Location'] != '/admin/'
