@@ -6,7 +6,7 @@
 {% block content %}
 
 <div class="sc-encabezado">
-    <h1>Consultar el estado de un aporte</h1>
+    <h1>Consultar el estado de los aporte</h1>
     <p>Averiguá si la Cooperadora ya verificó lo que cargaste.</p>
 </div>
 
@@ -19,7 +19,7 @@
                         data-bs-toggle="tab" data-bs-target="#panel-codigo" type="button"
                         role="tab" aria-controls="panel-codigo"
                         aria-selected="{{ 'false' if dni else 'true' }}">
-                    <i class="bi bi-upc-scan" aria-hidden="true"></i> Por código de seguimiento
+                    <i class="bi bi-upc-scan" aria-hidden="true"></i> Consulta de movimiento
                 </button>
             </li>
             <li class="nav-item" role="presentation">
@@ -27,7 +27,7 @@
                         data-bs-toggle="tab" data-bs-target="#panel-dni" type="button"
                         role="tab" aria-controls="panel-dni"
                         aria-selected="{{ 'true' if dni else 'false' }}">
-                    <i class="bi bi-person-vcard" aria-hidden="true"></i> Por DNI
+                    <i class="bi bi-person-vcard" aria-hidden="true"></i> Consulta de aportes
                 </button>
             </li>
         </ul>
@@ -59,9 +59,7 @@
 
             <div class="tab-pane fade {% if dni %}show active{% endif %}"
                  id="panel-dni" role="tabpanel" aria-labelledby="tab-dni">
-                <form method="POST" class="row g-3 align-items-end">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="modo" value="dni">
+                 <form method="GET" class="row g-3 align-items-end">
                     <div class="col-md-8">
                         <label for="dni" class="form-label sc-requerido">DNI</label>
                         <input type="text" class="form-control" id="dni" name="dni"
@@ -315,6 +313,21 @@
             Cuando un aporte figura verificado, el recibo físico se retira por Preceptoría.
         </p>
     </div>
+    {% if paginacion and paginacion.pages > 1 %}
+    <div class="card-body border-top d-flex justify-content-between align-items-center">
+        <span class="sc-ayuda">Página {{ paginacion.page }} de {{ paginacion.pages }}</span>
+        <div class="d-flex gap-2">
+            {% if paginacion.has_prev %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('aportantes.seguimiento', dni=dni, pagina=paginacion.prev_num) }}">Anterior</a>
+            {% endif %}
+            {% if paginacion.has_next %}
+            <a class="btn btn-sm btn-outline-primary"
+               href="{{ url_for('aportantes.seguimiento', dni=dni, pagina=paginacion.next_num) }}">Siguiente</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% elif dni %}
 <div class="card">
