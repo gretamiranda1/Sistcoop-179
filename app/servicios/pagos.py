@@ -362,6 +362,8 @@ def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
         raise ErrorDeCarga('El pago no existe.')
     if pago.estado == 'verificado':
         raise ErrorDeCarga('El pago ya está verificado.')
+    if pago.estado == 'rechazado':
+        raise ErrorDeCarga('No se puede verificar un pago rechazado.')
     if pago.estado == 'anulado':
         raise ErrorDeCarga('No se puede verificar un pago anulado.')
 
