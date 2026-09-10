@@ -183,15 +183,19 @@
                         {% endif %}
                     </td>
                     <td class="text-end">
-                        <form method="POST" class="d-inline"
-                              action="{{ url_for('administracion.verificar_pago_grupal', pago_id=grupal.id) }}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-sm btn-primary">Verificar</button>
-                        </form>
-                        <button type="button" class="btn btn-sm btn-outline-danger"
-                                data-bs-toggle="modal" data-bs-target="#rechazar-grupal-{{ grupal.id }}">
-                            Rechazar
-                        </button>
+                                     <button type="button"
+                                        class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#verificar-grupal-{{ grupal.id }}">
+                                    Verificar
+                                    </button>
+
+                                    <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#rechazar-grupal-{{ grupal.id }}">
+                                    Rechazar
+                                </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -411,33 +415,67 @@
 {% endfor %}
 
 {% for grupal in grupales_pendientes.items %}
-<div class="modal fade" id="rechazar-grupal-{{ grupal.id }}" tabindex="-1"
-     aria-labelledby="rechazar-grupal-titulo-{{ grupal.id }}" aria-hidden="true">
+<div class="modal fade"
+     id="verificar-grupal-{{ grupal.id }}"
+     tabindex="-1"
+     aria-labelledby="verificar-grupal-titulo-{{ grupal.id }}"
+     aria-hidden="true">
+
     <div class="modal-dialog">
-        <form class="modal-content" method="POST"
-              action="{{ url_for('administracion.rechazar_pago_grupal', pago_id=grupal.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <form class="modal-content"
+            method="POST"
+            action="{{ url_for('administracion.verificar_pago_grupal', pago_id=grupal.id)}}">
+
+        <input type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token() }}">
+
             <div class="modal-header">
-                <h3 class="modal-title h5" id="rechazar-grupal-titulo-{{ grupal.id }}">
-                    Rechazar {{ grupal.codigo_seguimiento }}
+                <h3 class="modal-title h5"
+                    id="verificar-grupal-titulo-{{ grupal.id }}">
+                    Verificar {{ grupal.codigo_seguimiento }}
                 </h3>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar"></button>
             </div>
+
             <div class="modal-body">
-                <label for="motivo-grupal-{{ grupal.id }}" class="form-label sc-requerido">Motivo del rechazo</label>
-                <textarea class="form-control" id="motivo-grupal-{{ grupal.id }}" name="motivo"
-                          rows="3" required></textarea>
+                <p>
+                    Está por verificarse la transferencia grupal
+                    <strong>{{ grupal.codigo_seguimiento }}</strong>.
+                </p>
+
+                <p>
+                    Se acreditarán
+                    <strong>{{ grupal.detalles.count() }}</strong>
+                    personas por un total de
+                    <strong>{{ grupal.importe_total|pesos }}</strong>.
+                </p>
+
                 <p class="sc-ayuda mt-2">
-                    Se rechazan también las {{ grupal.detalles.count() }} imputaciones individuales.
+                    Esta acción verificará todos los pagos asociados y
+                    actualizará los fondos y saldos correspondientes.
                 </p>
             </div>
+
             <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="submit" class="btn btn-danger">Rechazar transferencia</button>
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+
+                <button type="submit"
+                        class="btn btn-primary">
+                    Confirmar verificación
+                </button>
             </div>
+
         </form>
     </div>
 </div>
 {% endfor %}
-
 {% endblock %}

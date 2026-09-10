@@ -396,9 +396,24 @@ def verificar_pago_grupal(pago_grupal_id, usuario_id, ip=None, user_agent=None):
 
     # Pasamos la consulta a lista antes del bucle: verificar_pago() hace su
     # propio commit, y no conviene recorrer una consulta mientras se guarda.
-    for pago in grupal.pagos.all():
-        if pago.estado == 'pendiente':
-            servicio_pagos.verificar_pago(pago.id, usuario_id)
+    try:
+        for pago in grupal.pagos.all():
+            if pago.estado == 'pendiente':
+                servicio_pagos.verificar_pago(
+                    pago.id,
+                    usuario_id,
+                    commit=False
+                )
+
+        auditoria.registrar(
+            ...
+        )
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        raise
 
     auditoria.registrar(
         usuario=str(usuario_id),
@@ -415,8 +430,9 @@ def verificar_pago_grupal(pago_grupal_id, usuario_id, ip=None, user_agent=None):
     return grupal
 
 
-def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, ip=None, user_agent=None):
-    """Rechaza la transferencia y todos los pagos que salieron de ella."""
+def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo,
+                         ip=None, user_agent=None):
+
     grupal = PagoGrupal.query.get(pago_grupal_id)
     if not grupal:
         raise ErrorDeCarga('La transferencia grupal no existe.')
@@ -425,26 +441,40 @@ def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, ip=None, user_agent
     if not motivo:
         raise ErrorDeCarga('Hay que indicar el motivo del rechazo.')
 
-    grupal.estado = 'rechazado'
-    db.session.add(grupal)
+    try:
+        grupal.estado = 'rechazado'
+        db.session.add(grupal)
 
-    for detalle in grupal.detalles.all():
-        detalle.estado = 'rechazado'
-        db.session.add(detalle)
+        for detalle in grupal.detalles.all():
+            detalle.estado = 'rechazado'
+            db.session.add(detalle)
 
-    for pago in grupal.pagos.all():
-        if pago.estado in ('pendiente', 'verificado'):
-            servicio_pagos.rechazar_pago(pago.id, usuario_id, motivo)
+        for pago in grupal.pagos.all():
+            if pago.estado in ('pendiente', 'verificado'):
+                servicio_pagos.rechazar_pago(
+                    pago.id,
+                    usuario_id,
+                    motivo,
+                    commit=False
+                )
 
-    auditoria.registrar(
-        usuario=str(usuario_id),
-        accion='rechazar_pago_grupal',
-        tabla='pagos_grupales',
-        registro_id=grupal.id,
-        detalle={'codigo_seguimiento': grupal.codigo_seguimiento, 'motivo': motivo},
-        ip=ip,
-        user_agent=user_agent
-    )
+        auditoria.registrar(
+            usuario=str(usuario_id),
+            accion='rechazar_pago_grupal',
+            tabla='pagos_grupales',
+            registro_id=grupal.id,
+            detalle={
+                'codigo_seguimiento': grupal.codigo_seguimiento,
+                'motivo': motivo
+            },
+            ip=ip,
+            user_agent=user_agent
+        )
 
-    db.session.commit()
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        raise
+
     return grupal
