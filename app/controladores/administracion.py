@@ -307,7 +307,14 @@ def nuevo_ejercicio():
         return redirect(url_for('administracion.panel'))
 
     fecha_asamblea = formulario.fecha_asamblea.data
-    fecha_asamblea = date.fromisoformat(fecha_asamblea) if fecha_asamblea else None
+    if fecha_asamblea:
+        try:
+            fecha_asamblea = date.fromisoformat(fecha_asamblea)
+        except ValueError:
+            flash('La fecha de la asamblea no tiene un formato válido.', 'danger')
+            return redirect(url_for('administracion.panel'))
+    else:
+        fecha_asamblea = None
 
     nuevo, anterior = servicio_ejercicios.abrir_ejercicio(anio, cuota, fecha_asamblea)
 

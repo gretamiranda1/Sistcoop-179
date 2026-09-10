@@ -119,6 +119,11 @@ def datos_de_cuota(carrera):
             'hash_comprobante': huella,
             'comprobante_nombre': 'comprobante-' + huella + '.png',
             'carrera_id': carrera.id,
+            'anio': '1',
+        }
+        datos.update(extra)
+        return datos
+    return _fabrica
             'anio': 1,
         }
         datos.update(extra)
