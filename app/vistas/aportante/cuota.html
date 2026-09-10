@@ -86,9 +86,9 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="anio" class="form-label">Año que cursa</label>
-                        <select class="form-select" id="anio" name="anio">
-                            <option value="">Sin especificar</option>
+                        <label for="anio" class="form-label sc-requerido">Año que cursa</label>
+                        <select class="form-select" id="anio" name="anio" required>
+                            <option value="">Elegí un año</option>
                             {% for a in anios %}
                             <option value="{{ a }}" {% if data.anio == a %}selected{% endif %}>{{ a }}</option>
                             {% endfor %}
@@ -259,18 +259,18 @@
                                                name="apellido_{{ n }}" required>
                                     </div>
                                     <div class="col-sm-5">
-                                        <label class="form-label">Carrera</label>
-                                        <select class="form-select form-select-sm sc-carrera" name="carrera_{{ n }}">
-                                            <option value="">Sin especificar</option>
+                                        <label class="form-label sc-requerido">Carrera</label>
+                                        <select class="form-select form-select-sm sc-carrera" name="carrera_{{ n }}" required>
+                                            <option value="">Elegí una carrera</option>
                                             {% for carrera in carreras %}
                                             <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
                                     <div class="col-sm-3">
-                                        <label class="form-label">Año</label>
-                                        <select class="form-select form-select-sm sc-anio" name="anio_{{ n }}">
-                                            <option value="">—</option>
+                                        <label class="form-label sc-requerido">Año</label>
+                                        <select class="form-select form-select-sm sc-anio" name="anio_{{ n }}" required>
+                                            <option value="">Elegí un año</option>
                                             {% for a in anios %}
                                             <option value="{{ a }}">{{ a }}</option>
                                             {% endfor %}
