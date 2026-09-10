@@ -221,7 +221,9 @@ def procesar_pago_grupal(data, ip=None, user_agent=None):
     else:
         importe_total = round(float(data['importe_total']), 2)
 
-    if data.get('fecha'):
+    if not data.get('fecha'):
+        errores.append('La fecha de la transferencia es obligatoria.')
+    else:
         fecha_ok, mensaje = validaciones.validar_fecha_transferencia(data['fecha'])
         if not fecha_ok:
             errores.append(mensaje)
