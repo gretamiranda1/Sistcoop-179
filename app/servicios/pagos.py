@@ -295,6 +295,12 @@ def crear_pago_publico(data, ip=None, user_agent=None):
     # empresa o alguien que no quiere dar más datos que el DNI.
     errores = validar_datos(data, pide_apellido=(tipo != 'adicional'))
     errores = errores + validar_operacion_y_comprobante(data)
+    if tipo == 'libreta_duplicado':
+        if not data.get('carrera_id'):
+            errores.append('Debe seleccionar una carrera.')
+        if not data.get('anio'):
+            errores.append('Debe seleccionar un año.')
+
     if errores:
         raise ErrorDeCarga(errores)
 

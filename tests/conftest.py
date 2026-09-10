@@ -32,6 +32,9 @@ def app():
         _db.session.remove()
         _db.drop_all()
 
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
 @pytest.fixture
 def db(app):
@@ -103,7 +106,7 @@ def iniciar_sesion():
 
 
 @pytest.fixture
-def datos_de_cuota():
+def datos_de_cuota(carrera):
     """Un formulario de cuota ya completado, listo para el servicio."""
     def _fabrica(dni, importe, codigo_transaccion, huella, **extra):
         datos = {
@@ -115,7 +118,10 @@ def datos_de_cuota():
             'codigo_transaccion': codigo_transaccion,
             'hash_comprobante': huella,
             'comprobante_nombre': 'comprobante-' + huella + '.png',
+            'carrera_id': carrera.id,
+            'anio': 1,
         }
         datos.update(extra)
         return datos
     return _fabrica
+

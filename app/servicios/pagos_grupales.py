@@ -143,15 +143,22 @@ def repartir_en_partes_iguales(personas, importe_total):
 
     # No se reparte más de lo que falta entre todos
     a_repartir = min(importe_total, total_faltante)
-    parte = round(a_repartir / len(con_deuda), 2)
+    centavos_a_repartir = round(a_repartir * 100)
+    cantidad = len(con_deuda)
+    centavos_base = centavos_a_repartir // cantidad
+    centavos_sobrantes = centavos_a_repartir % cantidad
 
     asignado = 0.0
-    for persona in personas:
-        monto = 0.0
-        if persona['falta'] > 0:
-            monto = min(parte, persona['falta'])
+    for indice, persona in enumerate(con_deuda):
+        centavos_persona = centavos_base + (1 if indice < centavos_sobrantes else 0)
+        parte = round(centavos_persona / 100, 2)
+        monto = min(parte, persona['falta'])
         persona['monto_asignado'] = monto
         asignado = round(asignado + monto, 2)
+
+    for persona in personas:
+        if persona['falta'] <= 0:
+            persona['monto_asignado'] = 0.0
 
     excedente = round(importe_total - asignado, 2)
     return personas, max(excedente, 0.0)
