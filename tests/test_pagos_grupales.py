@@ -4,17 +4,17 @@ from datetime import date
 from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import pagos as servicio_pagos
 
-def test_pago_grupal_reparte_el_importe_y_la_suma_cierra(db, ejercicio, fondo_capital):
+def test_pago_grupal_reparte_el_importe_y_la_suma_cierra(db, ejercicio, fondo_capital, carrera):
     grupal, resumen = servicio_grupales.procesar_pago_grupal({
         'importe_total': 40000,
         'fecha': date.today().isoformat(),
-        'codigo_transaccion': 'OP-GRUPAL-1',
+        'codigo_transaccion': 'OPGRUPAL1',
         'hash_comprobante': 'huella-grupal-1',
         'comprobante_nombre': 'grupal.png',
         'tipo_distribucion': 'auto',
         'personas': [
-            {'dni': '36111111', 'nombre': 'Ana', 'apellido': 'Gómez'},
-            {'dni': '36222222', 'nombre': 'Beto', 'apellido': 'Gómez'},
+            {'dni': '36111111', 'nombre': 'Ana', 'apellido': 'Gómez', 'carrera_id': carrera.id , 'anio': 1,},
+            {'dni': '36222222', 'nombre': 'Beto', 'apellido': 'Gómez', 'carrera_id': carrera.id ,'anio': 1,},
         ],
     })
 

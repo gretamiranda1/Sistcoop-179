@@ -1,4 +1,5 @@
 """Los fondos no se mezclan (RF-09): general y de carrera son bolsillos aparte."""
+from datetime import date
 from app.servicios import pagos as servicio_pagos
 
 
@@ -11,7 +12,8 @@ def test_fondos_de_cooperadora_y_de_carrera_no_se_mezclan(
     pago_general = servicio_pagos.crear_pago_publico({
         'nombre': 'Sponsor', 'apellido': 'General', 'dni': '40111111',
         'destino': 'capital', 'tipo': 'adicional', 'importe': 5000,
-        'codigo_transaccion': 'OP-GENERAL', 'hash_comprobante': 'huella-general',
+        'codigo_transaccion': 'OPGENERAL', 'hash_comprobante': 'huella-general',
+        'fecha': date.today().isoformat(),
     })
     servicio_pagos.verificar_pago(pago_general.id, admin.id)
 
@@ -23,7 +25,8 @@ def test_fondos_de_cooperadora_y_de_carrera_no_se_mezclan(
         'nombre': 'Sponsor', 'apellido': 'Carrera', 'dni': '40222222',
         'destino': 'carrera', 'carrera_destino_id': carrera.id,
         'tipo': 'aporte_carrera', 'importe': 3000,
-        'codigo_transaccion': 'OP-CARRERA', 'hash_comprobante': 'huella-carrera',
+        'codigo_transaccion': 'OPCARRERA', 'hash_comprobante': 'huella-carrera',
+        'fecha': date.today().isoformat(),
     })
     servicio_pagos.verificar_pago(pago_carrera.id, admin.id)
 

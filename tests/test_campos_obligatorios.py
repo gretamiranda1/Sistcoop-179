@@ -2,10 +2,30 @@
 servidor, para cuando alguien manda el POST sin pasar por el formulario
 (issue #70)."""
 import pytest
-
+from datetime import date
 from app.servicios import pagos as servicio_pagos
 from app.servicios.pagos import ErrorDeCarga
 
+
+@pytest.fixture
+def datos_de_cuota(carrera):
+    def _fabrica(dni, importe, codigo_transaccion, huella, **extra):
+        datos = {
+            'nombre': 'Persona',
+            'apellido': 'De Prueba',
+            'dni': dni,
+            'importe': importe,
+            'fecha': date.today().isoformat(),
+            'codigo_transaccion': codigo_transaccion,
+            'hash_comprobante': huella,
+            'comprobante_nombre': 'comprobante-' + huella + '.png',
+            'carrera_id': carrera.id,
+            'anio': 1,
+        }
+        datos.update(extra)
+        return datos
+
+    return _fabrica
 
 def test_libreta_duplicado_sin_carrera_se_rechaza(db, fondo_capital, datos_de_cuota):
     data = datos_de_cuota('43111111', 5000, 'OPLIBRETAQA1', 'huella-libreta-1')
