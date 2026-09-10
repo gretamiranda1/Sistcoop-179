@@ -32,6 +32,9 @@ def app():
         _db.session.remove()
         _db.drop_all()
 
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
 @pytest.fixture
 def db(app):
@@ -121,3 +124,9 @@ def datos_de_cuota(carrera):
         datos.update(extra)
         return datos
     return _fabrica
+            'anio': 1,
+        }
+        datos.update(extra)
+        return datos
+    return _fabrica
+
