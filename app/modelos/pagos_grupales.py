@@ -13,6 +13,8 @@ from datetime import datetime
 
 from app.extensions import db
 
+from app.modelos.pagos import Pago
+
 
 class PagoGrupal(db.Model):
     """Una sola transferencia que cubre a varias personas.
@@ -56,8 +58,11 @@ class PagoGrupal(db.Model):
         return cls.query.filter_by(hash_comprobante=huella).first()
 
     @classmethod
-    def get_pendientes(cls, pagina=1, por_pagina=20):
-        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).paginate(
+    def get_pendientes(cls, pagina=1, por_pagina=20, ejercicio_id=None):
+        consulta = cls.query.filter_by(estado='pendiente')
+        if ejercicio_id:
+            consulta = consulta.filter(cls.pagos.any(Pago.ejercicio_id == ejercicio_id))
+        return consulta.order_by(cls.created_at.asc()).paginate(
             page=pagina, per_page=por_pagina, error_out=False)
 
     def __repr__(self):

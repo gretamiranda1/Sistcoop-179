@@ -10,10 +10,25 @@
         <h1>Panel de la Cooperadora</h1>
         <p>
             Verificación de los comprobantes cargados por el portal.
-            {% if ejercicio %}Ejercicio {{ ejercicio.anio }}, cuota {{ ejercicio.cuota|pesos }}.{% endif %}
+            {% if ejercicio %}Ejercicio vigente: {{ ejercicio.anio }}, cuota {{ ejercicio.cuota|pesos }}.{% endif %}
         </p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <label for="ejercicio_id" class="sc-ayuda mb-0">Viendo</label>
+            <select class="form-select form-select-sm" id="ejercicio_id" name="ejercicio_id"
+                    onchange="this.form.submit()">
+                {% for e in ejercicios %}
+                <option value="{{ e.id }}"
+                    {% if ejercicio_seleccionado and ejercicio_seleccionado.id == e.id %}selected{% endif %}>
+                    Ejercicio {{ e.anio }}{% if not e.cerrado %} (vigente){% endif %}
+                </option>
+                {% endfor %}
+                <option value="0" {% if not ejercicio_seleccionado %}selected{% endif %}>
+                    Todos los ejercicios
+                </option>
+            </select>
+        </form>
         <a href="{{ url_for('administracion.gestion_libretas') }}" class="btn btn-outline-primary">
             <i class="bi bi-journal-bookmark me-1" aria-hidden="true"></i> Libretas
         </a>
@@ -31,6 +46,7 @@
         <h2>Saldos</h2>
         <p class="sc-subtitulo">
             Reflejan únicamente los pagos verificados. Lo cargado y sin verificar no suma acá.
+            Es el saldo global de cada fondo: no cambia según el ejercicio que estés mirando arriba.
         </p>
     </div>
     <div class="card-body">
@@ -122,11 +138,11 @@
         <div class="d-flex gap-2">
             {% if pendientes.has_prev %}
             <a class="btn btn-sm btn-outline-primary"
-               href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.prev_num) }}">Anterior</a>
+            href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.prev_num, ejercicio_id=ejercicio_seleccionado.id if ejercicio_seleccionado else 0) }}">Anterior</a>
             {% endif %}
             {% if pendientes.has_next %}
             <a class="btn btn-sm btn-outline-primary"
-               href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.next_num) }}">Siguiente</a>
+               href="{{ url_for('administracion.panel', pagina_pendientes=pendientes.next_num, ejercicio_id=ejercicio_seleccionado.id if ejercicio_seleccionado else 0) }}">Siguiente</a>
             {% endif %}
         </div>
     </div>
@@ -204,11 +220,11 @@
         <div class="d-flex gap-2">
             {% if grupales_pendientes.has_prev %}
             <a class="btn btn-sm btn-outline-primary"
-               href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.prev_num) }}">Anterior</a>
+            href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.prev_num, ejercicio_id=ejercicio_seleccionado.id if ejercicio_seleccionado else 0) }}">Anterior</a>
             {% endif %}
             {% if grupales_pendientes.has_next %}
             <a class="btn btn-sm btn-outline-primary"
-               href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.next_num) }}">Siguiente</a>
+               href="{{ url_for('administracion.panel', pagina_grupales=grupales_pendientes.next_num, ejercicio_id=ejercicio_seleccionado.id if ejercicio_seleccionado else 0) }}">Siguiente</a>
             {% endif %}
         </div>
     </div>

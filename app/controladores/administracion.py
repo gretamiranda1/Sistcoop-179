@@ -55,22 +55,40 @@ def panel():
         puede_editar_cuota = False
         motivo_cuota = 'No hay ejercicio vigente.'
 
+    ejercicios = Ejercicio.query.order_by(Ejercicio.anio.desc()).all()
+    ejercicio_id_param = request.args.get('ejercicio_id', type=int)
+
+    if ejercicio_id_param is None:
+        ejercicio_seleccionado = ejercicio
+    elif ejercicio_id_param == 0:
+        ejercicio_seleccionado = None
+    else:
+        ejercicio_seleccionado = Ejercicio.query.get(ejercicio_id_param)
+
+    filtro_ejercicio_id = ejercicio_seleccionado.id if ejercicio_seleccionado else None
+
     pagina_pendientes = request.args.get('pagina_pendientes', 1, type=int)
     pagina_grupales = request.args.get('pagina_grupales', 1, type=int)
-    pendientes = Pago.get_pendientes(pagina_pendientes)
-    grupales_pendientes = PagoGrupal.get_pendientes(pagina_grupales)
+    pendientes = Pago.get_pendientes(pagina_pendientes, ejercicio_id=filtro_ejercicio_id)
+    grupales_pendientes = PagoGrupal.get_pendientes(pagina_grupales, ejercicio_id=filtro_ejercicio_id)
     solicitudes = SolicitudFondo.query.filter_by(estado='pendiente').order_by(
         SolicitudFondo.created_at.asc()).all()
+
+    consulta_verificados = Pago.query.filter_by(estado='verificado')
+    if filtro_ejercicio_id:
+        consulta_verificados = consulta_verificados.filter(Pago.ejercicio_id == filtro_ejercicio_id)
 
     return render_template(
         'admin/panel.html',
         ejercicio=ejercicio,
+        ejercicios=ejercicios,
+        ejercicio_seleccionado=ejercicio_seleccionado,
         puede_editar_cuota=puede_editar_cuota,
         motivo_cuota=motivo_cuota,
         pendientes=pendientes,
         grupales_pendientes=grupales_pendientes,
         solicitudes=solicitudes,
-        verificados=Pago.query.filter_by(estado='verificado').count(),
+        verificados=consulta_verificados.count(),
         fondos=Fondo.get_activos()
     )
 
