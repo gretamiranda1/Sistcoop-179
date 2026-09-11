@@ -1,6 +1,10 @@
 """Los fondos no se mezclan (RF-09): general y de carrera son bolsillos aparte."""
 from app.servicios import pagos as servicio_pagos
 
+from decimal import Decimal
+
+from app.servicios import fondos as servicio_fondos
+
 
 def test_fondos_de_cooperadora_y_de_carrera_no_se_mezclan(
         db, ejercicio, fondo_capital, fondo_carrera, carrera, admin):
@@ -30,3 +34,10 @@ def test_fondos_de_cooperadora_y_de_carrera_no_se_mezclan(
     assert float(fondo_carrera.saldo) == saldo_carrera_inicial + 3000
     # El aporte a la carrera no le sumó nada al fondo general
     assert float(fondo_capital.saldo) == saldo_capital_inicial + 5000
+
+
+def test_registrar_movimiento_acumula_sin_error_de_punto_flotante(db, fondo_capital):
+    for monto in [Decimal('10.10'), Decimal('10.20'), Decimal('10.30')]:
+        servicio_fondos.registrar_movimiento(fondo_capital, monto, 'Prueba de precisión')
+
+    assert fondo_capital.saldo == Decimal('30.60')

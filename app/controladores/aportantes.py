@@ -425,7 +425,7 @@ def procesar_solicitud_fondos():
                 'curso': formulario.curso.data or None,
                 'tipo': formulario.tipo.data,
                 'concepto': formulario.concepto.data,
-                'importe_estimado': Decimal(str(round(float(formulario.importe.data), 2))),
+                'importe_estimado': Decimal(formulario.importe.data),
                 'fecha_estimada': fecha_estimada,
                 'justificacion': formulario.justificacion.data,
             },

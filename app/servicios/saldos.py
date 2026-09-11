@@ -11,6 +11,7 @@ from datetime import datetime
 from app.extensions import db
 from app.modelos.pagos import Pago, TIPOS_DE_CUOTA
 from app.modelos.saldos import SaldoAportante
+from decimal import Decimal
 
 
 def buscar_o_crear_saldo(aportante_id, ejercicio_id, cuota_total):
@@ -46,15 +47,15 @@ def recalcular_saldo(saldo):
     """
     pagos = Pago.get_de_cuota(saldo.aportante_id, saldo.ejercicio_id, 'verificado')
 
-    total = 0
+    total = Decimal('0')
     for pago in pagos:
-        total = total + float(pago.importe)
+        total = total + pago.importe
 
     saldo.pagado = total
-    pendiente = float(saldo.ejercicio.cuota) - total
+    pendiente = saldo.ejercicio.cuota - total
 
     if pendiente <= 0:
-        saldo.saldo_pendiente = 0
+        saldo.saldo_pendiente = Decimal('0')
         saldo.estado = 'al_dia'
     else:
         saldo.saldo_pendiente = pendiente
