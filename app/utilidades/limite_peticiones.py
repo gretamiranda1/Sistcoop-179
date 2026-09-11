@@ -1,13 +1,15 @@
-import time
+"""Límite de solicitudes por IP, para pantallas públicas sensibles (RNF-02, RNF-03).
+
+El contador vive en la base de datos, no en memoria del proceso: así
+funciona igual sin importar cuántos workers de Gunicorn estén corriendo.
+"""
+
+from datetime import datetime, timedelta
+
 from flask import request
 
-# Guardamos, por cada IP y cada pantalla, la hora de las últimas consultas.
-# La clave es "nombre_de_la_pantalla:ip" y el valor una lista de horarios.
-#
-# Esto vive en la memoria del proceso. Alcanza para desarrollo y para un
-# servidor con un solo proceso. Si en producción se levantan varios, cada
-# uno va a llevar su propia cuenta y habría que pasarlo a Redis.
-_consultas = {}
+from app.extensions import db
+from app.modelos.limitador import ConsultaLimitada
 
 
 def excede_limite(pantalla, limite=10, ventana=60):
@@ -19,21 +21,30 @@ def excede_limite(pantalla, limite=10, ventana=60):
     """
     ip = request.remote_addr or 'desconocida'
     clave = pantalla + ':' + ip
-    ahora = time.time()
+    ahora = datetime.utcnow()
+    desde = ahora - timedelta(seconds=ventana)
 
-    # Nos quedamos sólo con las consultas que entran en la ventana de tiempo
-    anteriores = _consultas.get(clave, [])
-    anteriores = [momento for momento in anteriores if momento > ahora - ventana]
+    # Los renglones fuera de la ventana ya no sirven para nada: se borran acá
+    ConsultaLimitada.query.filter(
+        ConsultaLimitada.clave == clave,
+        ConsultaLimitada.momento <= desde
+    ).delete()
 
-    if len(anteriores) >= limite:
-        _consultas[clave] = anteriores
+    cantidad = ConsultaLimitada.query.filter(
+        ConsultaLimitada.clave == clave,
+        ConsultaLimitada.momento > desde
+    ).count()
+
+    if cantidad >= limite:
+        db.session.commit()
         return True
 
-    anteriores.append(ahora)
-    _consultas[clave] = anteriores
+    db.session.add(ConsultaLimitada(clave=clave, momento=ahora))
+    db.session.commit()
     return False
 
 
 def limpiar_limites():
     """Vacía el contador. Sólo lo usamos en las pruebas."""
-    _consultas.clear()
+    ConsultaLimitada.query.delete()
+    db.session.commit()
