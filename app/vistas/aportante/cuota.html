@@ -336,6 +336,85 @@ document.addEventListener('DOMContentLoaded', function () {
     configurarEstadoCuota('dni', 'estado-cuota', 'importe');
     evitarDobleEnvio('form-cuota', 'btn-cuota', 'Enviando comprobante…');
 
+var inputComprobante = document.getElementById('comprobante');
+
+inputComprobante.addEventListener('change', async function () {
+
+    if (!this.files.length) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('comprobante', this.files[0]);
+
+    const csrfToken =
+        document.querySelector(
+            'input[name="csrf_token"]'
+        ).value;
+
+    try {
+
+        const response = await fetch(
+            '/aportante/analizar-comprobante',
+            {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            }
+        );
+
+        if (!response.ok) {
+            console.error(
+                'HTTP Error:',
+                response.status
+            );
+            return;
+        }
+
+        const datos = await response.json();
+
+        console.log("fecha recibida:", datos.fecha);
+
+        document.getElementById('fecha').value =
+            datos.fecha;
+
+        console.log(
+            "fecha cargada:",
+            document.getElementById('fecha').value
+        );
+
+        if (datos.importe) {
+            document.getElementById('importe').value =
+                datos.importe;
+        }
+    
+        //if (datos.fecha) {
+        //  document.getElementById('fecha').value =
+        //        datos.fecha;
+        //}
+
+        if (datos.operacion) {
+            document.getElementById('codigo_transaccion').value =
+                datos.operacion;
+        }
+
+        console.log(datos);
+
+        console.log(document.getElementById('fecha'));
+
+    } catch (error) {
+
+        console.error(
+            'Error procesando comprobante',
+            error
+        );
+
+    }
+
+});
+
     // ---- Pago grupal ---------------------------------------------------
     configurarCarga('zona-comprobante-grupal', 'comprobante-grupal',
                     'comprobante-grupal-estado', 'comprobante-grupal-vista');

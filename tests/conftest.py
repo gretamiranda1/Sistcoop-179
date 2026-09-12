@@ -16,8 +16,7 @@ from app.extensions import db as _db
 from app.modelos.carreras import Carrera
 from app.modelos.ejercicios import Ejercicio
 from app.modelos.fondos import Fondo
-from app.modelos.usuarios import Usuario
-
+from app.modelos.usuarios import 
 CUOTA = 30000.0
 
 

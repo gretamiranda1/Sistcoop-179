@@ -28,18 +28,31 @@ from app.formularios.solicitudes import FormularioDuplicadoLibreta, FormularioSo
 from app.modelos.aportantes import Aportante
 from app.modelos.carreras import Carrera
 from app.modelos.ejercicios import Ejercicio
-from app.modelos.pagos import Pago, generar_codigo
+from app.modelos.pagos import Pago
 from app.modelos.pagos_grupales import PagoGrupal
 from app.modelos.saldos import SaldoAportante
 from app.modelos.solicitudes import SolicitudFondo
-from app.servicios import auditoria
 from app.servicios import pagos as servicio_pagos
 from app.servicios import pagos_grupales as servicio_grupales
+from app.servicios import solicitudes as servicio_solicitudes
 from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante
 from app.utilidades.limite_peticiones import excede_limite
 from app.utilidades.peticion import ip_y_user_agent
+from app.servicios.comprobantes import extraer_datos_comprobante
+from app.utilidades.archivos import ruta_comprobante
+from app.extensions import csrf
+from flask import (
+    Blueprint,
+    render_template,
+    request,
+    redirect,
+    url_for,
+    flash,
+    current_app,
+    jsonify,
+)
 
 aportantes_bp = Blueprint('aportantes', __name__)
 
@@ -48,15 +61,56 @@ aportantes_bp = Blueprint('aportantes', __name__)
 # FUNCIONES QUE USAN VARIAS VISTAS
 # ============================================
 
+
 def leer_comprobante(campo='comprobante'):
-    """Guarda el archivo del formulario y devuelve los datos para el pago."""
+    """
+        Guarda el archivo del formulario y devuelve los datos para el pago.
+    """
+
     guardado = guardar_comprobante(request.files.get(campo))
+
     return {
         'comprobante_nombre': guardado['nombre'],
         'hash_comprobante': guardado['hash'],
     }
 
 
+@csrf.exempt
+@aportantes_bp.route('/analizar-comprobante', methods=['POST'])
+def analizar_comprobante():
+
+    try:
+        archivo = request.files.get('comprobante')
+
+        if not archivo:
+            return jsonify({
+                'error': 'No se recibió ningún archivo'
+            }), 400
+
+        guardado = guardar_comprobante(archivo)
+
+        ruta = ruta_comprobante(
+            guardado['nombre']
+        )
+
+        datos = extraer_datos_comprobante(ruta)
+
+        return jsonify({
+            'importe': datos.get('importe'),
+            'fecha': datos.get('fecha'),
+            'operacion': datos.get('operacion'),
+        })
+
+    except Exception as e:
+        current_app.logger.exception(
+            'Error analizando comprobante'
+        )
+
+        return jsonify({
+            'error': str(e)
+        }), 500
+
+    
 def mostrar_errores(error):
     """Manda a pantalla los mensajes de un ErrorDeCarga o de un ArchivoInvalido."""
     mensajes = getattr(error, 'errores', None)
@@ -415,36 +469,23 @@ def procesar_solicitud_fondos():
     try:
         fecha_estimada = (validaciones.texto_a_fecha(formulario.fecha_estimada.data)
                           if formulario.fecha_estimada.data else None)
-
-        pedido = SolicitudFondo(
-            codigo_seguimiento=generar_codigo('SF'),
-            responsable=formulario.responsable.data,
-            contacto=formulario.contacto.data,
-            carrera_id=formulario.carrera_id.data or None,
-            curso=formulario.curso.data or None,
-            tipo=formulario.tipo.data,
-            concepto=formulario.concepto.data,
-            importe_estimado=Decimal(str(round(float(formulario.importe.data), 2))),
-            fecha_estimada=fecha_estimada,
-            justificacion=formulario.justificacion.data
-        )
-        db.session.add(pedido)
-        # flush() manda el INSERT a la base y le asigna el id a la fila, pero
-        # todavía no confirma nada: eso lo hace el commit del final.
-        db.session.flush()
-
         ip, user_agent = ip_y_user_agent()
-        auditoria.registrar(
-            usuario='portal-publico',
-            accion='cargar_solicitud_fondos',
-            tabla='solicitudes_fondo',
-            registro_id=pedido.id,
-            detalle={'codigo_seguimiento': pedido.codigo_seguimiento,
-                     'tipo': pedido.tipo},
+
+        pedido = servicio_solicitudes.crear_solicitud_fondos(
+            {
+                'responsable': formulario.responsable.data,
+                'contacto': formulario.contacto.data,
+                'carrera_id': formulario.carrera_id.data or None,
+                'curso': formulario.curso.data or None,
+                'tipo': formulario.tipo.data,
+                'concepto': formulario.concepto.data,
+                'importe_estimado': Decimal(str(round(float(formulario.importe.data), 2))),
+                'fecha_estimada': fecha_estimada,
+                'justificacion': formulario.justificacion.data,
+            },
             ip=ip,
             user_agent=user_agent
         )
-        db.session.commit()
 
         return redirect(url_for('aportantes.exito_solicitud',
                                 codigo=pedido.codigo_seguimiento))
