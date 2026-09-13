@@ -22,7 +22,7 @@ def _crear_aportante_con_pagos(db, fondo_capital, cantidad, dni='30111222'):
             tipo='adicional',
             importe=1000 + i,
             fecha=date.today(),
-            codigo_transaccion='OP-{}-{:04d}'.format(dni, i),
+            codigo_transaccion='OP{}{:08d}'.format(dni, i),
             estado='pendiente',
             aportante_id=aportante.id,
             fondo_id=fondo_capital.id,
@@ -115,4 +115,4 @@ def test_panel_admin_pagina_fuera_de_rango_no_rompe(client, db, admin, iniciar_s
 
     resp = client.get('/admin/?pagina_pendientes=99&pagina_grupales=99')
 
-    assert resp.status_code == 20
+    assert resp.status_code == 200

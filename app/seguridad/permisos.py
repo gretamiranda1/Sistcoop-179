@@ -9,7 +9,7 @@ olvidaba de esa línea, quedaba accesible a cualquier usuario logueado
 from functools import wraps
 
 from flask import current_app, flash, redirect, url_for
-from flask_login import current_user
+from flask_login import current_user, logout_user
 
 
 def requiere_rol(*roles, mensaje='No tenés permisos para hacer eso.'):
@@ -24,6 +24,11 @@ def requiere_rol(*roles, mensaje='No tenés permisos para hacer eso.'):
         @wraps(vista)
         def envoltura(*args, **kwargs):
             if not current_user.is_authenticated:
+                return current_app.login_manager.unauthorized()
+            if not current_user.is_active:
+                logout_user()
+                flash('Tu cuenta fue desactivada. Iniciá sesión de nuevo o '
+                      'contactate con un administrador.', 'danger')
                 return current_app.login_manager.unauthorized()
             if current_user.rol not in roles:
                 flash(mensaje, 'danger')

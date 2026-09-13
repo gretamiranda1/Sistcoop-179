@@ -42,7 +42,8 @@ class Usuario(db.Model, UserMixin):
     def check_password(self, password):
         """Verificar si la contraseña es correcta"""
         return check_password_hash(self.password_hash, password)
-    
+
+    @property
     def is_active(self):
         """Verificar si el usuario está activo"""
         return self.activo

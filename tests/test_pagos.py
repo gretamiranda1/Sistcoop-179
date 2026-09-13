@@ -10,8 +10,7 @@ from app.servicios import pagos as servicio_pagos
 from app.servicios.pagos import ErrorDeCarga
 
 
-def test_pago_nace_pendiente_y_no_mueve_ningun_saldo(
-        db, ejercicio, fondo_capital, datos_de_cuota):
+def test_pago_nace_pendiente_y_no_mueve_ningun_saldo(db, ejercicio, fondo_capital, datos_de_cuota):
     saldo_fondo_inicial = float(fondo_capital.saldo)
 
     pago, saldo = servicio_pagos.crear_pago_de_cuota(

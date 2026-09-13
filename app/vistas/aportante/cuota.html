@@ -86,9 +86,9 @@
                         </select>
                     </div>
                     <div class="col-md-4">
-                        <label for="anio" class="form-label">Año que cursa</label>
-                        <select class="form-select" id="anio" name="anio">
-                            <option value="">Sin especificar</option>
+                        <label for="anio" class="form-label sc-requerido">Año que cursa</label>
+                        <select class="form-select" id="anio" name="anio" required>
+                            <option value="">Elegí un año</option>
                             {% for a in anios %}
                             <option value="{{ a }}" {% if data.anio == a %}selected{% endif %}>{{ a }}</option>
                             {% endfor %}
