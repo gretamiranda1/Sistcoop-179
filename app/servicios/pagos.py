@@ -438,7 +438,7 @@ def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None, commit=
     if estaba_verificado:
         fondos.registrar_movimiento(
             pago.fondo,
-            monto=-float(pago.importe),
+            monto=-pago.importe,
             motivo='Reversión por rechazo del pago ' + pago.codigo_seguimiento
         )
 

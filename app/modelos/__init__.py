@@ -8,9 +8,10 @@ from app.modelos.auditoria import Auditoria
 from app.modelos.saldos import SaldoAportante
 from app.modelos.pagos_grupales import PagoGrupal, PagoGrupalDetalle
 from app.modelos.solicitudes import SolicitudFondo
+from app.modelos.limitador import ConsultaLimitada
 
 __all__ = [
     'Usuario', 'Ejercicio', 'Carrera', 'Aportante', 'Fondo', 'MovimientoFondo',
     'Pago', 'Auditoria', 'SaldoAportante', 'PagoGrupal', 'PagoGrupalDetalle',
-    'SolicitudFondo',
+    'SolicitudFondo', 'ConsultaLimitada',
 ]

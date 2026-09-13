@@ -36,6 +36,7 @@ from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 from app.utilidades.peticion import ip_y_user_agent
+from decimal import Decimal
 
 administracion_bp = Blueprint('administracion', __name__)
 
@@ -262,7 +263,7 @@ def editar_cuota():
         flash(formulario.cuota.errors[0], 'danger')
         return redirect(url_for('administracion.panel'))
 
-    nuevo_monto = round(float(formulario.cuota.data), 2)
+    nuevo_monto = Decimal(formulario.cuota.data)
 
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
@@ -300,7 +301,7 @@ def nuevo_ejercicio():
         return redirect(url_for('administracion.panel'))
 
     anio = int(formulario.anio.data)
-    cuota = round(float(formulario.cuota.data), 2)
+    cuota = Decimal(formulario.cuota.data)
 
     if Ejercicio.query.filter_by(anio=anio).first():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
