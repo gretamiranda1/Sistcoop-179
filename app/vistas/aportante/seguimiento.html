@@ -176,6 +176,15 @@
                 </tbody>
             </table>
         </div>
+
+        {% if grupal.estado == 'rechazado' and grupal.pagos.first() %}
+        <div class="sc-aviso sc-aviso-atencion mt-3">
+            <p class="mb-0">
+                <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+                Motivo del rechazo: {{ grupal.pagos.first().motivo_rechazo }}
+            </p>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endif %}
@@ -294,7 +303,12 @@
                     <td>{{ pago.tipo_legible }}</td>
                     <td>{{ pago.fecha.strftime('%d/%m/%Y') }}</td>
                     <td class="text-end sc-importe">{{ pago.importe|pesos }}</td>
-                    <td>{{ c.estado_pago(pago.estado) }}</td>
+                    <td>
+                        {{ c.estado_pago(pago.estado) }}
+                        {% if pago.motivo_rechazo %}
+                        <span class="d-block sc-ayuda">{{ pago.motivo_rechazo }}</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if pago.numero_recibo %}
                             <span class="sc-etiqueta">{{ pago.serie_recibo or '' }} {{ pago.numero_recibo }}</span>

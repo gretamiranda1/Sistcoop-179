@@ -15,11 +15,8 @@ que corresponde y mostrar la pantalla. Las reglas de negocio están en
 app/servicios/.
 """
 
+import hashlib
 from decimal import Decimal
-
-from flask import (Blueprint, render_template, request, redirect, url_for,
-                   flash, current_app)
-
 from app.constantes import ANIOS
 from app.extensions import db
 from app.formularios.adicional import FormularioAporteCarrera, FormularioAporteGeneral
@@ -37,11 +34,10 @@ from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import solicitudes as servicio_solicitudes
 from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
-from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante
+from app.utilidades.archivos import ArchivoInvalido, guardar_comprobante, ruta_comprobante
 from app.utilidades.limite_peticiones import excede_limite
 from app.utilidades.peticion import ip_y_user_agent
 from app.servicios.comprobantes import extraer_datos_comprobante
-from app.utilidades.archivos import ruta_comprobante
 from app.extensions import csrf
 from flask import (
     Blueprint,
@@ -73,6 +69,7 @@ def leer_comprobante(campo='comprobante'):
         'comprobante_nombre': guardado['nombre'],
         'hash_comprobante': guardado['hash'],
     }
+
 
 
 @csrf.exempt
@@ -111,6 +108,43 @@ def analizar_comprobante():
         }), 500
 
     
+def leer_comprobante_o_reusar(campo='comprobante'):
+    """Si se adjuntó un archivo nuevo lo procesa; si no, reusa el que ya se
+    había guardado en un intento anterior del mismo formulario.
+
+    Evita que un reintento por otro error (código de operación repetido, una
+    persona mal cargada, etc.) obligue a volver a elegir el comprobante, y
+    evita guardar una segunda copia del mismo archivo en disco.
+
+    La huella nunca se toma del campo oculto que manda el navegador -eso no
+    es de confiar-: se recalcula leyendo el archivo real que ya está en
+    disco, así que no hay forma de declarar un comprobante que no existe.
+    """
+    archivo = request.files.get(campo)
+    if archivo and archivo.filename:
+        datos = leer_comprobante(campo)
+        # Sólo para mostrarlo en pantalla si hay que reintentar: el nombre
+        # real que la persona le puso al archivo, no el generado al azar
+        # con el que se guarda en disco.
+        datos['comprobante_nombre_original'] = archivo.filename
+        return datos
+
+    nombre_previo = (request.form.get('comprobante_nombre_previo') or '').strip()
+    nombre_original_previo = (request.form.get('comprobante_nombre_original_previo') or '').strip()
+    ruta = ruta_comprobante(nombre_previo) if nombre_previo else None
+    if ruta:
+        with open(ruta, 'rb') as comprobante:
+            huella = hashlib.sha256(comprobante.read()).hexdigest()
+        return {
+            'comprobante_nombre': nombre_previo,
+            'hash_comprobante': huella,
+            'comprobante_nombre_original': nombre_original_previo or nombre_previo,
+        }
+
+    raise ArchivoInvalido('Tenés que adjuntar el comprobante de la transferencia.')
+
+
+
 def mostrar_errores(error):
     """Manda a pantalla los mensajes de un ErrorDeCarga o de un ArchivoInvalido."""
     mensajes = getattr(error, 'errores', None)
@@ -276,16 +310,25 @@ def procesar_cuota_grupal():
     _, errores_personas = servicio_grupales.normalizar_personas(personas)
     errores.extend(errores_personas)
 
-    # 4. Comprobante
-    archivo = request.files.get('comprobante')
-
-    if not archivo or not archivo.filename:
-        errores.append(
-            'Tenés que adjuntar el comprobante de la transferencia.'
-        )
+    # 4. Comprobante: se lee (o se reusa el de un intento anterior) ACÁ, antes
+    # de saber si alguna otra validación de más abajo falla, para que quede
+    # guardado sin importar cuál sea el motivo del rechazo. Así un reintento
+    # por cualquier otro error (una persona incompleta, el n° de operación
+    # vacío, lo que sea) no lo pierde ni lo vuelve a pedir.
+    datos_comprobante = None
+    comprobante_nombre_para_mostrar = (request.form.get('comprobante_nombre_previo') or '').strip() or None
+    comprobante_nombre_original_para_mostrar = (
+        request.form.get('comprobante_nombre_original_previo') or ''
+    ).strip() or None
+    try:
+        datos_comprobante = leer_comprobante_o_reusar('comprobante')
+        comprobante_nombre_para_mostrar = datos_comprobante['comprobante_nombre']
+        comprobante_nombre_original_para_mostrar = datos_comprobante.get('comprobante_nombre_original')
+    except ArchivoInvalido as error:
+        errores.append(str(error))
 
     # 5. N° operación
-    
+
     if not (formulario.codigo_transaccion.data or '').strip():
         errores.append('El número de operación es obligatorio.')
 
@@ -295,9 +338,11 @@ def procesar_cuota_grupal():
 
         return render_template(
             'aportante/cuota.html',
-            **datos_del_formulario(es_grupal=True)
+            **datos_del_formulario(es_grupal=True,
+                                   comprobante_nombre=comprobante_nombre_para_mostrar,
+                                   comprobante_nombre_original=comprobante_nombre_original_para_mostrar)
         ), 400
-        
+
     try:
 
         data = {
@@ -309,7 +354,7 @@ def procesar_cuota_grupal():
             'tipo_distribucion': formulario.tipo_distribucion.data or 'auto',
             'montos': montos,
         }
-        data.update(leer_comprobante('comprobante'))
+        data.update(datos_comprobante)
 
         ip, user_agent = ip_y_user_agent()
         grupal, resumen = servicio_grupales.procesar_pago_grupal(data, ip=ip, user_agent=user_agent)
@@ -324,7 +369,9 @@ def procesar_cuota_grupal():
                          'en unos minutos.')
 
     return render_template('aportante/cuota.html',
-                           **datos_del_formulario(es_grupal=True)), 400
+                           **datos_del_formulario(es_grupal=True,
+                                                  comprobante_nombre=comprobante_nombre_para_mostrar,
+                                                  comprobante_nombre_original=comprobante_nombre_original_para_mostrar)), 400
 
 
 # ============================================

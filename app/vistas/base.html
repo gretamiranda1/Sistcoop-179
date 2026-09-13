@@ -103,9 +103,10 @@
 
 <main class="sc-contenido" id="contenido">
 
-    {# Los mensajes van acá dentro y no flotando: cuando estaban fijos
-       tapaban los botones de la cabecera del panel. El role="status" hace
-       que un lector de pantalla los lea al aparecer. #}
+    {# Los mensajes flotan (position: fixed, abajo a la derecha, ver
+    sistcoop.css) sin empujar el resto de la página ni tapar la cabecera,
+    que es lo que pasaba la vez que se probaron arriba. El role="status"
+    hace que un lector de pantalla los lea al aparecer igual. #}
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         <div class="sc-mensajes" role="status" aria-live="polite" aria-atomic="false">

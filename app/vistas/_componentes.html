@@ -8,22 +8,43 @@
 {# --------------------------------------------------------------------- #}
 {# Zona de carga del comprobante                                          #}
 {# --------------------------------------------------------------------- #}
-{% macro zona_comprobante(id_zona, id_input, id_estado, id_vista, etiqueta='Comprobante de transferencia', requerido=true) %}
+{% macro zona_comprobante(id_zona, id_input, id_estado, id_vista, etiqueta='Comprobante de transferencia', requerido=true, nombre_previo=None, nombre_original=None) %}
 <div class="col-12">
     <label class="form-label {% if requerido %}sc-requerido{% endif %}" for="{{ id_input }}">{{ etiqueta }}</label>
+
+    {# Si un intento anterior de este mismo formulario ya guardó un archivo
+       válido, lo avisamos (con el nombre real que le puso la persona, no el
+       generado al azar con el que se guarda en disco) y lo mandamos de
+       nuevo por un campo oculto: así un reintento por otro error no obliga
+       a volver a elegirlo ni lo guarda una segunda vez. La huella nunca
+       sale de acá: se recalcula del archivo real en disco (ver
+       leer_comprobante_o_reusar). #}
+    {% if nombre_previo %}
+    <div class="sc-aviso sc-aviso-ok mb-2">
+        <p class="mb-0">
+            <i class="bi bi-check-circle" aria-hidden="true"></i>
+            Ya se cargó <strong>{{ nombre_original or 'un comprobante' }}</strong> en el intento anterior.
+            Si no elegís otro archivo, se usa ese mismo.
+        </p>
+    </div>
+    <input type="hidden" name="comprobante_nombre_previo" value="{{ nombre_previo }}">
+    <input type="hidden" name="comprobante_nombre_original_previo" value="{{ nombre_original or '' }}">
+    {% endif %}
 
     {# Va como <button> y no como <div> para que se pueda llegar con Tab
        y activar con Enter, igual que cualquier otro control. #}
     <button type="button" class="sc-dropzone" id="{{ id_zona }}"
             aria-describedby="{{ id_estado }}">
         <span class="sc-dropzone-icono"><i class="bi bi-cloud-arrow-up" aria-hidden="true"></i></span>
-        <span class="sc-dropzone-titulo d-block">Tocá acá para elegir el archivo</span>
+        <span class="sc-dropzone-titulo d-block">
+            {% if nombre_previo %}Tocá acá para cambiarlo{% else %}Tocá acá para elegir el archivo{% endif %}
+        </span>
         <span class="sc-dropzone-detalle d-block">o arrastralo hasta este recuadro</span>
         <span class="sc-dropzone-detalle d-block mt-2">Foto o captura del comprobante (JPG, PNG) o el PDF del banco. Hasta 16 MB.</span>
     </button>
 
     <input type="file" class="d-none" id="{{ id_input }}" name="comprobante"
-           accept="image/jpeg,image/png,application/pdf" {% if requerido %}required{% endif %}>
+           accept="image/jpeg,image/png,application/pdf" {% if requerido and not nombre_previo %}required{% endif %}>
 
     <span class="sc-campo-estado" id="{{ id_estado }}" aria-live="polite"></span>
     <div class="sc-vista-previa" id="{{ id_vista }}" hidden></div>

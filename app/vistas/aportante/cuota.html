@@ -198,7 +198,7 @@
                     {{ c.campo_fecha('fecha-grupal', valor=data.fecha) }}
                     {{ c.campo_codigo_transaccion('codigo-transaccion-grupal', 'transaccion-grupal-estado', data.codigo_transaccion) }}
 
-                    {{ c.zona_comprobante('zona-comprobante-grupal', 'comprobante-grupal', 'comprobante-grupal-estado', 'comprobante-grupal-vista') }}
+                    {{ c.zona_comprobante('zona-comprobante-grupal', 'comprobante-grupal', 'comprobante-grupal-estado', 'comprobante-grupal-vista', nombre_previo=comprobante_nombre, nombre_original=comprobante_nombre_original) }}
 
                     <div class="col-12 sc-seccion">
                         <h2 class="h6 text-uppercase sc-cifra-rotulo mb-2">Cómo se reparte el importe</h2>
@@ -228,11 +228,14 @@
                         <p class="sc-ayuda mb-3">Mínimo dos personas. No se puede repetir el mismo DNI.</p>
 
                         {# El servidor recorre las filas de 1 hasta esta cantidad.
-                           El JavaScript la actualiza al agregar o quitar personas. #}
-                        <input type="hidden" name="cantidad_personas" id="cantidad-personas" value="2">
+                           El JavaScript la actualiza al agregar o quitar personas.
+                           Si un intento anterior falló, arranca en la cantidad que
+                           ya se había cargado, no siempre en 2. #}
+                        {% set cantidad = [(data.get('cantidad_personas')|int(2)), 2]|max %}
+                        <input type="hidden" name="cantidad_personas" id="cantidad-personas" value="{{ cantidad }}">
 
                         <div id="sc-personas" class="reparto-auto">
-                            {% for n in [1, 2] %}
+                            {% for n in range(1, cantidad + 1) %}
                             <fieldset class="sc-persona">
                                 <div class="sc-persona-cabecera">
                                     <legend class="sc-persona-numero mb-0">Persona {{ n }}</legend>
@@ -245,25 +248,28 @@
                                     <div class="col-sm-4">
                                         <label class="form-label sc-requerido">DNI</label>
                                         <input type="text" class="form-control form-control-sm sc-dni"
-                                               name="dni_{{ n }}" placeholder="33123456"
-                                               inputmode="numeric" required>
+                                               name="dni_{{ n }}" value="{{ data.get('dni_' ~ n, '') }}"
+                                               placeholder="33123456" inputmode="numeric" required>
                                     </div>
                                     <div class="col-sm-4">
                                         <label class="form-label sc-requerido">Nombre</label>
                                         <input type="text" class="form-control form-control-sm sc-nombre"
-                                               name="nombre_{{ n }}" required>
+                                               name="nombre_{{ n }}" value="{{ data.get('nombre_' ~ n, '') }}" required>
                                     </div>
                                     <div class="col-sm-4">
                                         <label class="form-label sc-requerido">Apellido</label>
                                         <input type="text" class="form-control form-control-sm sc-apellido"
-                                               name="apellido_{{ n }}" required>
+                                               name="apellido_{{ n }}" value="{{ data.get('apellido_' ~ n, '') }}" required>
                                     </div>
                                     <div class="col-sm-5">
                                         <label class="form-label">Carrera</label>
                                         <select class="form-select form-select-sm sc-carrera" name="carrera_{{ n }}">
                                             <option value="">Sin especificar</option>
                                             {% for carrera in carreras %}
-                                            <option value="{{ carrera.id }}">{{ carrera.nombre }}</option>
+                                            <option value="{{ carrera.id }}"
+                                                {% if data.get('carrera_' ~ n)|string == carrera.id|string %}selected{% endif %}>
+                                                {{ carrera.nombre }}
+                                            </option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -272,7 +278,7 @@
                                         <select class="form-select form-select-sm sc-anio" name="anio_{{ n }}">
                                             <option value="">—</option>
                                             {% for a in anios %}
-                                            <option value="{{ a }}">{{ a }}</option>
+                                            <option value="{{ a }}" {% if data.get('anio_' ~ n) == a %}selected{% endif %}>{{ a }}</option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -281,14 +287,15 @@
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text">$</span>
                                             <input type="number" class="form-control sc-monto"
-                                                   name="monto_{{ n }}" step="0.01" min="0"
-                                                   inputmode="decimal">
+                                                   name="monto_{{ n }}" value="{{ data.get('monto_' ~ n, '') }}"
+                                                   step="0.01" min="0" inputmode="decimal">
                                         </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="form-check">
                                             <input class="form-check-input sc-libreta" type="checkbox"
-                                                   name="libreta_{{ n }}" value="si">
+                                                   name="libreta_{{ n }}" value="si"
+                                                   {% if data.get('libreta_' ~ n) == 'si' %}checked{% endif %}>
                                             <label class="form-check-label small">Necesita retirar su libreta</label>
                                         </div>
                                     </div>

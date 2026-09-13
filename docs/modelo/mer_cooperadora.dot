@@ -1,0 +1,186 @@
+digraph DER {
+  graph [rankdir=LR, splines=spline, nodesep=0.3, ranksep=0.75,
+         fontname="DejaVu Sans", bgcolor="white", pad=0.35, compound=true];
+  node  [shape=plaintext, fontname="DejaVu Sans", fontsize=27];
+  edge  [decorate=true, fontname="DejaVu Sans", fontsize=23, color="#4a5a42", penwidth=1.6, arrowsize=1.1, dir=both, fontcolor="#2f3a2b"];
+
+  operaciones [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>operaciones</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">codigo_transaccion</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">hash_comprobante</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">importe</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">cuit_ordenante</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">quien transfirió</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">alcance</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    </TABLE>>];
+  usuarios [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#5d7050"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>usuarios</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">username</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">rol</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    </TABLE>>];
+  ejercicios [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#5d7050"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>ejercicios</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">anio</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">cuota</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    </TABLE>>];
+  carreras [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#5d7050"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>carreras</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">nombre</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    </TABLE>>];
+  carrera_anios [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#5d7050"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>carrera_anios</B></FONT></TD></TR>
+    <TR><TD PORT="carrera_id" ALIGN="LEFT" BGCOLOR="#ffffff">carrera_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT> <FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">anio</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    </TABLE>>];
+  aportantes [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>aportantes</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">dni</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">nombre, apellido</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">cuit</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a8a8a" POINT-SIZE="21">opcional</FONT></TD></TR>
+    <TR><TD PORT="carrera_id" ALIGN="LEFT" BGCOLOR="#ffffff">carrera_id, anio</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a8a8a" POINT-SIZE="21">opcional</FONT></TD></TR>
+    </TABLE>>];
+  pagos_grupales [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>pagos_grupales</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">codigo_seguimiento</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD PORT="operacion_id" ALIGN="LEFT" BGCOLOR="#ffffff">operacion_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD PORT="usuario_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">usuario_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  pagos [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>pagos</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">codigo_seguimiento</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">tipo</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">cuota / adicional / …</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">importe</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">estado</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">derivado</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">solicita_libreta</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD PORT="operacion_id" ALIGN="LEFT" BGCOLOR="#ffffff">operacion_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD PORT="aportante_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">aportante_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="fondo_id" ALIGN="LEFT" BGCOLOR="#ffffff">fondo_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="ejercicio_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">ejercicio_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="usuario_id" ALIGN="LEFT" BGCOLOR="#ffffff">usuario_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="pago_grupal_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">pago_grupal_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  verificaciones [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#8a6a12"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>verificaciones</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">resultado</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">fecha</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD PORT="pago_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">pago_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="pago_grupal_id" ALIGN="LEFT" BGCOLOR="#ffffff">pago_grupal_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="usuario_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">usuario_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  recibos [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>recibos</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">letra, serie, numero</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">importe, documento</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">copia fija</FONT></TD></TR>
+    <TR><TD PORT="pago_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">pago_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    </TABLE>>];
+  saldos_aportantes [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#a8461f"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>saldos_aportantes</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">pagado</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a8a8a" POINT-SIZE="21">derivado</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">saldo_pendiente</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">derivado</FONT></TD></TR>
+    <TR><TD PORT="aportante_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">aportante_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    <TR><TD PORT="ejercicio_id" ALIGN="LEFT" BGCOLOR="#ffffff">ejercicio_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT></TD></TR>
+    </TABLE>>];
+  libretas [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#6b4a86"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>libretas</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">tipo</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a8a8a" POINT-SIZE="21">original / duplicado</FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">fecha_entrega</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD PORT="aportante_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">aportante_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="ejercicio_id" ALIGN="LEFT" BGCOLOR="#ffffff">ejercicio_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="entregada_por_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">entregada_por_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="pago_id" ALIGN="LEFT" BGCOLOR="#ffffff">pago_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT> <FONT COLOR="#8a6a12" POINT-SIZE="23"><B>UK</B></FONT> <FONT COLOR="#8a8a8a" POINT-SIZE="21">sólo duplicado</FONT></TD></TR>
+    </TABLE>>];
+  fondos [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#1f6360"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>fondos</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">tipo</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">saldo</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#8a8a8a" POINT-SIZE="21">derivado</FONT></TD></TR>
+    <TR><TD PORT="carrera_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">carrera_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  solicitudes_fondo [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#1f6360"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>solicitudes_fondo</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">estado</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">importe_aprobado</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD PORT="carrera_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">carrera_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="fondo_id" ALIGN="LEFT" BGCOLOR="#ffffff">fondo_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="resuelta_por_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">resuelta_por_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  movimientos_fondo [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#1f6360"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>movimientos_fondo</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">monto</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">origen</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD PORT="fondo_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">fondo_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="pago_id" ALIGN="LEFT" BGCOLOR="#ffffff">pago_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="solicitud_id" ALIGN="LEFT" BGCOLOR="#f5f7f1">solicitud_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    <TR><TD PORT="usuario_id" ALIGN="LEFT" BGCOLOR="#ffffff">usuario_id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#1f6360" POINT-SIZE="23"><B>FK</B></FONT></TD></TR>
+    </TABLE>>];
+  auditoria [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="5" COLOR="#5a5a5a">
+    <TR><TD PORT="head" COLSPAN="2" BGCOLOR="#8a6a12"><FONT COLOR="#ffffff" POINT-SIZE="31"><B>auditoria</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">id</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"><FONT COLOR="#ad4a26" POINT-SIZE="23"><B>PK</B></FONT></TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">usuario</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#ffffff">tabla</TD><TD ALIGN="RIGHT" BGCOLOR="#ffffff"> </TD></TR>
+    <TR><TD ALIGN="LEFT" BGCOLOR="#f5f7f1">registro_id</TD><TD ALIGN="RIGHT" BGCOLOR="#f5f7f1"><FONT COLOR="#8a8a8a" POINT-SIZE="21">sin FK</FONT></TD></TR>
+    </TABLE>>];
+
+  { rank=same; operaciones -> usuarios -> ejercicios -> carreras [style=invis]; }
+  { rank=same; carrera_anios -> pagos_grupales -> fondos [style=invis]; }
+  { rank=same; aportantes -> solicitudes_fondo [style=invis]; }
+  { rank=same; pagos -> saldos_aportantes [style=invis]; }
+  { rank=same; verificaciones -> recibos -> libretas -> movimientos_fondo -> auditoria [style=invis]; }
+
+  operaciones:head -> pagos:operacion_id [label="respalda", arrowtail=teetee, arrowhead=teeodot, color="#9c3f1a"];
+  operaciones:head -> pagos_grupales:operacion_id [label="respalda", arrowtail=teetee, arrowhead=teeodot, color="#9c3f1a"];
+  carreras:head -> carrera_anios:carrera_id [label="se dicta en", arrowtail=teetee, arrowhead=crowodot, color="#4f6142"];
+  carreras:head -> fondos:carrera_id [label="tiene fondo", arrowtail=teeodot, arrowhead=crowodot, color="#4f6142"];
+  carreras:head -> solicitudes_fondo:carrera_id [label="origina", arrowtail=teeodot, arrowhead=crowodot, color="#4f6142"];
+  carrera_anios:head -> aportantes:carrera_id [label="ubica a", arrowtail=teeodot, arrowhead=crowodot, color="#4f6142"];
+  ejercicios:head -> pagos:ejercicio_id [label="imputa", arrowtail=teetee, arrowhead=crowodot, color="#4f6142"];
+  ejercicios:head -> saldos_aportantes:ejercicio_id [label="corresponde a", arrowtail=teetee, arrowhead=crowodot, color="#4f6142"];
+  aportantes:head -> pagos:aportante_id [label="realiza", arrowtail=teetee, arrowhead=crowodot, color="#9c3f1a"];
+  aportantes:head -> saldos_aportantes:aportante_id [label="acumula", arrowtail=teetee, arrowhead=crowodot, color="#9c3f1a"];
+  pagos_grupales:head -> pagos:pago_grupal_id [label="reparte en", arrowtail=teeodot, arrowhead=crowodot, color="#9c3f1a"];
+  pagos_grupales:head -> verificaciones:pago_grupal_id [label="se verifica", arrowtail=teeodot, arrowhead=crowodot, color="#9c3f1a"];
+  pagos:head -> verificaciones:pago_id [label="se verifica", arrowtail=teeodot, arrowhead=crowodot, color="#9c3f1a"];
+  pagos:head -> recibos:pago_id [label="emite", arrowtail=teetee, arrowhead=teeodot, color="#9c3f1a"];
+  pagos:head -> movimientos_fondo:pago_id [label="origina", arrowtail=teeodot, arrowhead=crowodot, color="#9c3f1a"];
+  fondos:head -> pagos:fondo_id [label="recibe", arrowtail=teetee, arrowhead=crowodot, color="#1b5b58"];
+  fondos:head -> solicitudes_fondo:fondo_id [label="se pide contra", arrowtail=teeodot, arrowhead=crowodot, color="#1b5b58"];
+  fondos:head -> movimientos_fondo:fondo_id [label="registra", arrowtail=teetee, arrowhead=crowodot, color="#1b5b58"];
+  solicitudes_fondo:head -> movimientos_fondo:solicitud_id [label="origina", arrowtail=teeodot, arrowhead=crowodot, color="#1b5b58"];
+  aportantes:head -> libretas:aportante_id [label="recibe", arrowtail=teetee, arrowhead=crowodot, color="#9c3f1a"];
+  ejercicios:head -> libretas:ejercicio_id [label="del ejercicio", arrowtail=teetee, arrowhead=crowodot, color="#4f6142"];
+  pagos:head -> libretas:pago_id [label="paga duplicado", arrowtail=teeodot, arrowhead=teeodot, color="#9c3f1a"];
+  usuarios:head -> libretas:entregada_por_id [label="entrega", arrowtail=teetee, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+  usuarios:head -> pagos:usuario_id [label="carga", arrowtail=teeodot, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+  usuarios:head -> pagos_grupales:usuario_id [label="carga", arrowtail=teeodot, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+  usuarios:head -> verificaciones:usuario_id [label="verifica", arrowtail=teetee, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+  usuarios:head -> solicitudes_fondo:resuelta_por_id [label="resuelve", arrowtail=teeodot, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+  usuarios:head -> movimientos_fondo:usuario_id [label="genera", arrowtail=teeodot, arrowhead=crowodot, color="#a3ab98", penwidth=1.0, fontcolor="#8d9686", fontsize=21];
+}
