@@ -240,34 +240,45 @@
     <div class="card-header">
         <h2>Solicitudes de fondos y eventos</h2>
         <p class="sc-subtitulo">
-            Pedidos presentados por cursos y docentes. La resolución se implementa en Incremento 3.
+            Pedidos presentados por cursos y docentes.
         </p>
     </div>
     <div class="table-responsive">
         <table class="table sc-tabla">
-            <thead>
-                <tr>
-                    <th scope="col">Código</th>
-                    <th scope="col">Responsable</th>
-                    <th scope="col">Tipo</th>
-                    <th scope="col">Concepto</th>
-                    <th scope="col" class="text-end">Estimado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for s in solicitudes %}
-                <tr>
-                    <td><span class="sc-codigo">{{ s.codigo_seguimiento }}</span></td>
-                    <td>
-                        {{ s.responsable }}
-                        <span class="d-block sc-ayuda">{{ s.contacto }}</span>
-                    </td>
-                    <td>{{ s.tipo_legible }}</td>
-                    <td>{{ s.concepto }}</td>
-                    <td class="text-end sc-importe">{{ s.importe_estimado|pesos }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
+        <thead>
+            <tr>
+                <th scope="col">Código</th>
+                <th scope="col">Responsable</th>
+                <th scope="col">Tipo</th>
+                <th scope="col">Concepto</th>
+                <th scope="col" class="text-end">Estimado</th>
+                <th scope="col" class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in solicitudes %}
+            <tr>
+                <td><span class="sc-codigo">{{ s.codigo_seguimiento }}</span></td>
+                <td>
+                    {{ s.responsable }}
+                    <span class="d-block sc-ayuda">{{ s.contacto }}</span>
+                </td>
+                <td>{{ s.tipo_legible }}</td>
+                <td>{{ s.concepto }}</td>
+                <td class="text-end sc-importe">{{ s.importe_estimado|pesos }}</td>
+                <td class="text-end">
+                    <button type="button" class="btn btn-sm btn-primary"
+                            data-bs-toggle="modal" data-bs-target="#aprobar-solicitud-{{ s.id }}">
+                        Aprobar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            data-bs-toggle="modal" data-bs-target="#rechazar-solicitud-{{ s.id }}">
+                        Rechazar
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
         </table>
     </div>
 </div>
@@ -450,6 +461,62 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="submit" class="btn btn-danger">Rechazar transferencia</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% for s in solicitudes %}
+<div class="modal fade" id="aprobar-solicitud-{{ s.id }}" tabindex="-1"
+     aria-labelledby="aprobar-solicitud-titulo-{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="POST"
+              action="{{ url_for('administracion.aprobar_solicitud', solicitud_id=s.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h3 class="modal-title h5" id="aprobar-solicitud-titulo-{{ s.id }}">
+                    Aprobar {{ s.codigo_seguimiento }}
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ s.responsable }} — {{ s.concepto }}</p>
+                <label for="comentario-{{ s.id }}" class="form-label">
+                    Comentario <span class="sc-opcional">(opcional)</span>
+                </label>
+                <textarea class="form-control" id="comentario-{{ s.id }}" name="comentario"
+                          rows="3" placeholder="Ej.: aprobado, coordinar con Tesorería el pago"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Confirmar aprobación</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="rechazar-solicitud-{{ s.id }}" tabindex="-1"
+     aria-labelledby="rechazar-solicitud-titulo-{{ s.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <form class="modal-content" method="POST"
+              action="{{ url_for('administracion.rechazar_solicitud', solicitud_id=s.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-header">
+                <h3 class="modal-title h5" id="rechazar-solicitud-titulo-{{ s.id }}">
+                    Rechazar {{ s.codigo_seguimiento }}
+                </h3>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <label for="motivo-solicitud-{{ s.id }}" class="form-label sc-requerido">Motivo del rechazo</label>
+                <textarea class="form-control" id="motivo-solicitud-{{ s.id }}" name="motivo"
+                          rows="3" required
+                          placeholder="Ej.: no hay presupuesto disponible este ejercicio"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Rechazar solicitud</button>
             </div>
         </form>
     </div>

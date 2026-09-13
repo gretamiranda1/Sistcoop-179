@@ -33,6 +33,8 @@ from app.servicios import pagos as servicio_pagos
 from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import saldos as servicio_saldos
 from app.servicios.pagos import ErrorDeCarga
+from app.servicios import solicitudes as servicio_solicitudes
+from app.servicios.solicitudes import ErrorDeResolucion
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 from app.utilidades.peticion import ip_y_user_agent
@@ -165,6 +167,40 @@ def rechazar_pago_grupal(pago_id):
             ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} rechazada.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
+        db.session.rollback()
+        flash(str(error), 'danger')
+
+    return redirect(url_for('administracion.panel'))
+
+@administracion_bp.route('/solicitudes/<int:solicitud_id>/aprobar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
+@login_required
+def aprobar_solicitud(solicitud_id):
+    ip, user_agent = ip_y_user_agent()
+    try:
+        solicitud = servicio_solicitudes.aprobar_solicitud(
+            solicitud_id, current_user.id,
+            comentario=request.form.get('comentario'),
+            ip=ip, user_agent=user_agent)
+        flash('Solicitud {} aprobada.'.format(solicitud.codigo_seguimiento), 'success')
+    except ErrorDeResolucion as error:
+        db.session.rollback()
+        flash(str(error), 'danger')
+
+    return redirect(url_for('administracion.panel'))
+
+
+@administracion_bp.route('/solicitudes/<int:solicitud_id>/rechazar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
+@login_required
+def rechazar_solicitud(solicitud_id):
+    ip, user_agent = ip_y_user_agent()
+    try:
+        solicitud = servicio_solicitudes.rechazar_solicitud(
+            solicitud_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
+        flash('Solicitud {} rechazada.'.format(solicitud.codigo_seguimiento), 'info')
+    except ErrorDeResolucion as error:
         db.session.rollback()
         flash(str(error), 'danger')
 
