@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta de estado — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Consulta de estado de pago</h1>
+    <p>Buscá al estudiante por DNI para ver si tiene la cuota verificada. Esta pantalla es sólo de consulta.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-8">
+                <label for="dni" class="form-label sc-requerido">DNI del estudiante</label>
+                <input type="text" class="form-control" id="dni" name="dni"
+                       value="{{ dni or '' }}" placeholder="33123456" inputmode="numeric"
+                       pattern="[0-9]*" maxlength="8"
+                       oninput="this.value = this.value.replace(/[^0-9]/g, '')" required>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2" aria-hidden="true"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if aportante %}
+<div class="card">
+    <div class="card-header">
+        <h2>{{ aportante.nombre_completo() }}</h2>
+        <p class="sc-subtitulo">
+            DNI {{ aportante.dni }}
+            {% if aportante.carrera %} · {{ aportante.carrera.nombre }}{% endif %}
+            {% if aportante.anio %} · {{ aportante.anio }} año{% endif %}
+        </p>
+    </div>
+    <div class="card-body">
+        {% if saldo %}
+        <div class="row g-4">
+            <div class="col-6 col-md-4">
+                <p class="sc-cifra-rotulo mb-1">Cuota {{ saldo.ejercicio.anio }}</p>
+                <p class="sc-cifra mb-0">{{ saldo.ejercicio.cuota|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-4">
+                <p class="sc-cifra-rotulo mb-1">Verificado</p>
+                <p class="sc-cifra mb-0" style="color: var(--sc-ok)">{{ saldo.pagado|pesos }}</p>
+            </div>
+            <div class="col-6 col-md-4">
+                <p class="sc-cifra-rotulo mb-1">Estado</p>
+                <p class="sc-cifra mb-0">{{ 'Al día' if saldo.estado == 'al_dia' else 'Pendiente' }}</p>
+            </div>
+        </div>
+        {% else %}
+        <p class="mb-0 sc-ayuda">Todavía no tiene ningún pago cargado para el ejercicio vigente.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
