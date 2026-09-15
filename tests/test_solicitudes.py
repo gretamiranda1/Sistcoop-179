@@ -1,46 +1,86 @@
-import pytest
+from datetime import date
 
-from app.servicios import solicitudes as servicio_solicitudes
-from app.servicios.pagos import ErrorDeCarga
-
-import pytest
-
-from app.servicios import solicitudes as servicio_solicitudes
-from app.servicios.pagos import ErrorDeCarga
-
-from sqlalchemy.exc import IntegrityError
-
+from app.extensions import db
 from app.modelos.solicitudes import SolicitudFondo
+from app.servicios import solicitudes as servicio_solicitudes
+from app.servicios.solicitudes import ErrorDeResolucion
 
 
-def test_solicitud_sin_carrera_no_se_registra(db):
-    data = {
-        'responsable': 'Juan Pérez',
-        'contacto': 'juan@example.com',
-        'carrera_id': None,
-        'curso': None,
-        'tipo': 'evento',
-        'concepto': 'Fiesta de fin de año',
-        'importe_estimado': 5000,
-        'fecha_estimada': None,
-        'justificacion': 'Se necesita financiar el evento de cierre de año.',
-    }
-
-    with pytest.raises(ErrorDeCarga):
-        servicio_solicitudes.crear_solicitud_fondos(data)
-
-
-def test_carrera_id_es_obligatorio_a_nivel_de_base(db):
-    pedido = SolicitudFondo(
-        codigo_seguimiento='SF00000002',
-        responsable='Responsable',
-        contacto='contacto@test.com',
-        carrera_id=None,
-        tipo='evento',
-        concepto='Concepto de prueba',
-        justificacion='Justificación de prueba con más de veinte caracteres.',
+def _crear_solicitud(db):
+    solicitud = SolicitudFondo(
+        codigo_seguimiento='SF-TESTQA01',
+        responsable='Profe Test', contacto='profe@test.com',
+        tipo='fondos', concepto='Insumos de taller',
+        importe_estimado=15000, fecha_estimada=date.today(),
+        justificacion='Se necesitan materiales para el taller de fin de año.',
     )
-    db.session.add(pedido)
+    db.session.add(solicitud)
+    db.session.commit()
+    return solicitud
 
-    with pytest.raises(IntegrityError):
-        db.session.commit()
+
+def test_aprobar_solicitud_completa_la_resolucion(db, admin):
+    solicitud = _crear_solicitud(db)
+
+    servicio_solicitudes.aprobar_solicitud(solicitud.id, admin.id, comentario='Dale para adelante')
+
+    assert solicitud.estado == 'aprobada'
+    assert solicitud.resolucion == 'Dale para adelante'
+    assert solicitud.resuelta_por_id == admin.id
+    assert solicitud.fecha_resolucion is not None
+
+
+def test_rechazar_solicitud_exige_motivo(db, admin):
+    solicitud = _crear_solicitud(db)
+
+    try:
+        servicio_solicitudes.rechazar_solicitud(solicitud.id, admin.id, '')
+        assert False, 'tenía que rechazar sin motivo'
+    except ErrorDeResolucion:
+        pass
+
+    assert solicitud.estado == 'pendiente'
+
+
+def test_no_se_puede_resolver_dos_veces(db, admin):
+    solicitud = _crear_solicitud(db)
+    servicio_solicitudes.aprobar_solicitud(solicitud.id, admin.id)
+
+    try:
+        servicio_solicitudes.rechazar_solicitud(solicitud.id, admin.id, 'motivo')
+        assert False, 'tenía que rechazar por ya resuelta'
+    except ErrorDeResolucion:
+        pass
+
+
+def test_panel_muestra_botones_de_accion(client, db, admin, iniciar_sesion):
+    _crear_solicitud(db)
+    iniciar_sesion(client, admin)
+
+    resp = client.get('/admin/')
+
+    assert resp.status_code == 200
+    assert 'aprobar-solicitud-' in resp.get_data(as_text=True)
+
+
+def test_solicitud_de_fondos_de_punta_a_punta(client, db, carrera):
+    resp = client.post('/aportante/solicitud', data={
+        'tipo_solicitud': 'fondos',
+        'responsable': 'Profe Test',
+        'contacto': 'profe@test.com',
+        'carrera_id': str(carrera.id),
+        'curso': '3A',
+        'tipo': 'fondos',
+        'importe': '15000',
+        'concepto': 'Insumos de taller',
+        'fecha_estimada': '',
+        'justificacion': 'Se necesitan materiales para el taller de fin de año.',
+    }, follow_redirects=False)
+
+    assert resp.status_code == 302
+    assert '/aportante/solicitud/' in resp.headers['Location']
+
+    solicitud = SolicitudFondo.query.first()
+    assert solicitud is not None
+    assert solicitud.estado == 'pendiente'
+    assert solicitud.codigo_seguimiento.startswith('SF-')

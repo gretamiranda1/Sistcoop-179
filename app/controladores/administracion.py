@@ -33,6 +33,8 @@ from app.servicios import pagos as servicio_pagos
 from app.servicios import pagos_grupales as servicio_grupales
 from app.servicios import saldos as servicio_saldos
 from app.servicios.pagos import ErrorDeCarga
+from app.servicios import solicitudes as servicio_solicitudes
+from app.servicios.solicitudes import ErrorDeResolucion
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 from app.utilidades.peticion import ip_y_user_agent
@@ -56,22 +58,40 @@ def panel():
         puede_editar_cuota = False
         motivo_cuota = 'No hay ejercicio vigente.'
 
+    ejercicios = Ejercicio.query.order_by(Ejercicio.anio.desc()).all()
+    ejercicio_id_param = request.args.get('ejercicio_id', type=int)
+
+    if ejercicio_id_param is None:
+        ejercicio_seleccionado = ejercicio
+    elif ejercicio_id_param == 0:
+        ejercicio_seleccionado = None
+    else:
+        ejercicio_seleccionado = Ejercicio.query.get(ejercicio_id_param)
+
+    filtro_ejercicio_id = ejercicio_seleccionado.id if ejercicio_seleccionado else None
+
     pagina_pendientes = request.args.get('pagina_pendientes', 1, type=int)
     pagina_grupales = request.args.get('pagina_grupales', 1, type=int)
-    pendientes = Pago.get_pendientes(pagina_pendientes)
-    grupales_pendientes = PagoGrupal.get_pendientes(pagina_grupales)
+    pendientes = Pago.get_pendientes(pagina_pendientes, ejercicio_id=filtro_ejercicio_id)
+    grupales_pendientes = PagoGrupal.get_pendientes(pagina_grupales, ejercicio_id=filtro_ejercicio_id)
     solicitudes = SolicitudFondo.query.filter_by(estado='pendiente').order_by(
         SolicitudFondo.created_at.asc()).all()
+
+    consulta_verificados = Pago.query.filter_by(estado='verificado')
+    if filtro_ejercicio_id:
+        consulta_verificados = consulta_verificados.filter(Pago.ejercicio_id == filtro_ejercicio_id)
 
     return render_template(
         'admin/panel.html',
         ejercicio=ejercicio,
+        ejercicios=ejercicios,
+        ejercicio_seleccionado=ejercicio_seleccionado,
         puede_editar_cuota=puede_editar_cuota,
         motivo_cuota=motivo_cuota,
         pendientes=pendientes,
         grupales_pendientes=grupales_pendientes,
         solicitudes=solicitudes,
-        verificados=Pago.query.filter_by(estado='verificado').count(),
+        verificados=consulta_verificados.count(),
         fondos=Fondo.get_activos()
     )
 
@@ -148,6 +168,40 @@ def rechazar_pago_grupal(pago_id):
             ip=ip, user_agent=user_agent)
         flash('Transferencia grupal {} rechazada.'.format(pago.codigo_seguimiento), 'info')
     except (ErrorDeCarga, ValueError) as error:
+        db.session.rollback()
+        flash(str(error), 'danger')
+
+    return redirect(url_for('administracion.panel'))
+
+@administracion_bp.route('/solicitudes/<int:solicitud_id>/aprobar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
+@login_required
+def aprobar_solicitud(solicitud_id):
+    ip, user_agent = ip_y_user_agent()
+    try:
+        solicitud = servicio_solicitudes.aprobar_solicitud(
+            solicitud_id, current_user.id,
+            comentario=request.form.get('comentario'),
+            ip=ip, user_agent=user_agent)
+        flash('Solicitud {} aprobada.'.format(solicitud.codigo_seguimiento), 'success')
+    except ErrorDeResolucion as error:
+        db.session.rollback()
+        flash(str(error), 'danger')
+
+    return redirect(url_for('administracion.panel'))
+
+
+@administracion_bp.route('/solicitudes/<int:solicitud_id>/rechazar', methods=['POST'])
+@requiere_rol('admin', 'asistente')
+@login_required
+def rechazar_solicitud(solicitud_id):
+    ip, user_agent = ip_y_user_agent()
+    try:
+        solicitud = servicio_solicitudes.rechazar_solicitud(
+            solicitud_id, current_user.id, request.form.get('motivo', ''),
+            ip=ip, user_agent=user_agent)
+        flash('Solicitud {} rechazada.'.format(solicitud.codigo_seguimiento), 'info')
+    except ErrorDeResolucion as error:
         db.session.rollback()
         flash(str(error), 'danger')
 
@@ -350,7 +404,7 @@ def nuevo_ejercicio():
 # quien atiende el mostrador.
 
 @administracion_bp.route('/libretas')
-@requiere_rol('admin', 'asistente', 'preceptoria', mensaje='No tenés permisos para acceder a esa sección.')
+@requiere_rol('admin', 'asistente', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def gestion_libretas():
     dni = validaciones.limpiar_dni(request.args.get('dni', ''))
@@ -382,7 +436,7 @@ def gestion_libretas():
 
 
 @administracion_bp.route('/libretas/<int:saldo_id>/entregar', methods=['POST'])
-@requiere_rol('admin', 'asistente', 'preceptoria')
+@requiere_rol('admin', 'asistente')
 @login_required
 def entregar_libreta(saldo_id):
     saldo = SaldoAportante.query.get(saldo_id)
@@ -417,6 +471,36 @@ def entregar_libreta(saldo_id):
         flash('Libreta entregada.', 'success')
 
     return redirect(url_for('administracion.gestion_libretas', dni=saldo.aportante.dni))
+
+
+@administracion_bp.route('/consulta-preceptoria')
+@requiere_rol('admin', 'asistente', 'preceptoria', mensaje='No tenés permisos para acceder a esa sección.')
+@login_required
+def consulta_preceptoria():
+    """Consulta de sólo lectura del estado de pago de un aportante (RF-13).
+
+    A propósito no usa servicio_saldos.buscar_o_crear_saldo(): esa función
+    crea la fila de saldo si no existe y hace commit. Una pantalla de sólo
+    lectura no puede escribir nada en la base, ni para "crear en cero".
+    """
+    dni = validaciones.limpiar_dni(request.args.get('dni', ''))
+    aportante = None
+    saldo = None
+
+    if dni:
+        if not validaciones.validar_dni(dni):
+            flash('Ingresá un DNI válido, sin puntos.', 'warning')
+        else:
+            aportante = Aportante.get_by_dni(dni)
+            if aportante:
+                ejercicio = Ejercicio.get_ejercicio_vigente()
+                if ejercicio:
+                    saldo = SaldoAportante.get_por_aportante(aportante.id, ejercicio.id)
+            else:
+                flash('No hay ningún aportante registrado con ese DNI.', 'info')
+
+    return render_template('admin/consulta_preceptoria.html',
+                           dni=dni, aportante=aportante, saldo=saldo)
 
 
 # ============================================

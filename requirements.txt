@@ -19,3 +19,7 @@ python-dotenv==1.0.0
 # además el paquete python-magic-bin. Si no está disponible, el sistema cae
 # a verificar la firma binaria del archivo (ver app/utilidades/archivos.py).
 python-magic==0.4.27
+
+# OCR para autocompletar comprobantes (ver app/servicios/comprobantes.py)
+pdfplumber==0.11.10
+easyocr==1.7.2
