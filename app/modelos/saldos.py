@@ -9,6 +9,7 @@ from datetime import datetime
 from app.extensions import db
 from app.modelos.pagos import Pago
 
+from decimal import Decimal
 
 class SaldoAportante(db.Model):
     """Cómo viene la cuota de una persona en un ejercicio.
@@ -62,9 +63,9 @@ class SaldoAportante(db.Model):
         Va separado de `pagado` para que nadie confunda "subí el comprobante"
         con "la Cooperadora confirmó que el dinero entró".
         """
-        total = 0
+        total = Decimal('0')
         for pago in Pago.get_de_cuota(self.aportante_id, self.ejercicio_id, 'pendiente'):
-            total = total + float(pago.importe)
+            total = total + pago.importe
         return total
 
     @property
@@ -74,10 +75,10 @@ class SaldoAportante(db.Model):
         Lo usa el reparto del pago grupal, para no pedirle dos veces lo mismo
         a alguien que ya cargó un comprobante y espera la verificación.
         """
-        falta = float(self.ejercicio.cuota) - float(self.pagado) - self.en_revision
+        falta = self.ejercicio.cuota - self.pagado - self.en_revision
         if falta < 0:
-            return 0.0
-        return round(falta, 2)
+            return Decimal('0.00')
+        return falta
 
     # ============================================
     # PARA LA BARRA DE AVANCE

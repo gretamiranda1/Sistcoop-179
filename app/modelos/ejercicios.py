@@ -58,9 +58,9 @@ class Ejercicio(db.Model):
 
         cantidad = Pago.query.filter(
             Pago.ejercicio_id == self.id,
-            Pago.estado != 'anulado'
+            Pago.estado == 'verificado'
         ).count()
-
+        
         if cantidad > 0:
             motivo = (
                 'El ejercicio {} ya tiene {} pago(s) cargado(s). La cuota se fija '

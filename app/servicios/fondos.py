@@ -11,6 +11,8 @@ from datetime import datetime
 from app.extensions import db
 from app.modelos.fondos import Fondo, MovimientoFondo
 
+from decimal import Decimal
+
 
 def registrar_movimiento(fondo, monto, motivo):
     """Cambia el saldo del fondo y deja el asiento del movimiento.
@@ -18,8 +20,8 @@ def registrar_movimiento(fondo, monto, motivo):
     `monto` va positivo cuando entra plata y negativo cuando se revierte algo.
     No hace commit: lo hace la operación que llamó a esta función.
     """
-    saldo_anterior = float(fondo.saldo or 0)
-    saldo_nuevo = saldo_anterior + float(monto)
+    saldo_anterior = fondo.saldo or Decimal('0')
+    saldo_nuevo = saldo_anterior + monto
 
     fondo.saldo = saldo_nuevo
     fondo.updated_at = datetime.utcnow()
@@ -34,7 +36,6 @@ def registrar_movimiento(fondo, monto, motivo):
     )
     db.session.add(movimiento)
     return movimiento
-
 
 def buscar_fondo(destino, carrera_id=None):
     """Decide a qué fondo entra la plata.
