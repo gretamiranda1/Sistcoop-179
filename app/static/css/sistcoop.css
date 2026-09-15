@@ -409,18 +409,38 @@ a { text-underline-offset: .2em; }
 .sc-aviso-atencion { border-left-color: var(--sc-espera); background: var(--sc-espera-fondo); }
 .sc-aviso-ok { border-left-color: var(--sc-ok); background: var(--sc-ok-fondo); }
 
-/* Mensajes del sistema. Van dentro de la página y no flotando: cuando
-   estaban fijos tapaban los botones de la cabecera del panel. */
-.sc-mensajes { margin-bottom: 1.5rem; }
+/* Mensajes del sistema: flotan abajo a la derecha, sin empujar el resto de
+   la página. La versión anterior los ponía fijos arriba y tapaban los
+   botones de la cabecera del panel — por eso ahora van abajo, lejos de
+   cualquier botón, y el contenedor deja pasar los clics por fuera de cada
+   aviso (pointer-events). */
+.sc-mensajes {
+    position: fixed;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    z-index: 1080;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: .75rem;
+    pointer-events: none;
+}
 .sc-mensajes .alert {
     border: 1px solid var(--sc-borde);
     border-left-width: 4px;
     box-shadow: var(--sc-sombra);
     border-radius: var(--sc-radio-chico);
     font-size: .92rem;
-    margin-bottom: .75rem;
+    margin-bottom: 0;
+    width: 100%;
+    max-width: 380px;
+    pointer-events: auto;
 }
-.sc-mensajes .alert:last-child { margin-bottom: 0; }
+@media (max-width: 576px) {
+    .sc-mensajes { align-items: stretch; }
+    .sc-mensajes .alert { max-width: none; }
+}
 
 /* --------------------------------------------------------------------------
    Tarjetas de acción del inicio
