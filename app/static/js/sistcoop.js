@@ -9,7 +9,7 @@
 var TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'application/pdf'];
 var TAMANIO_MAXIMO = 16 * 1024 * 1024;   // 16 MB
 var TAMANIO_MINIMO = 1024;               // 1 KB
-
+var TIEMPO_CIERRE_AVISO_MS = 7000; 
 
 // ============================================
 // FUNCIONES AUXILIARES
@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (window.bootstrap && bootstrap.Alert) {
                 bootstrap.Alert.getOrCreateInstance(alerta).close();
             }
-        }, 7000);
+        }, TIEMPO_CIERRE_AVISO_MS);
     });
 
     // Botones de "copiar" (el código de seguimiento)

@@ -149,9 +149,17 @@ class Pago(db.Model):
         ).first()
 
     @classmethod
-    def get_pendientes(cls, pagina=1, por_pagina=20):
-        """Pagos esperando verificación, del más viejo al más nuevo, paginados."""
-        return cls.query.filter_by(estado='pendiente').order_by(cls.created_at.asc()).paginate(
+    def get_pendientes(cls, pagina=1, por_pagina=20, ejercicio_id=None):
+        """Pagos esperando verificación, del más viejo al más nuevo, paginados.
+
+        Si se pasa ejercicio_id, sólo trae los pagos de ese ejercicio (los
+        aportes sin ejercicio -adicional, aporte_carrera, libreta_duplicado-
+        quedan afuera del filtro puntual).
+        """
+        consulta = cls.query.filter_by(estado='pendiente')
+        if ejercicio_id:
+            consulta = consulta.filter(cls.ejercicio_id == ejercicio_id)
+        return consulta.order_by(cls.created_at.asc()).paginate(
             page=pagina, per_page=por_pagina, error_out=False)
 
     @classmethod

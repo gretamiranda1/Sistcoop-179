@@ -17,7 +17,6 @@ from app.modelos.carreras import Carrera
 from app.modelos.ejercicios import Ejercicio
 from app.modelos.fondos import Fondo
 from app.modelos.usuarios import Usuario
-
 CUOTA = 30000.0
 
 
