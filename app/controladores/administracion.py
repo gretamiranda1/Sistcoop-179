@@ -38,6 +38,7 @@ from app.servicios.solicitudes import ErrorDeResolucion
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 from app.utilidades.peticion import ip_y_user_agent
+from decimal import Decimal
 
 administracion_bp = Blueprint('administracion', __name__)
 
@@ -316,7 +317,7 @@ def editar_cuota():
         flash(formulario.cuota.errors[0], 'danger')
         return redirect(url_for('administracion.panel'))
 
-    nuevo_monto = round(float(formulario.cuota.data), 2)
+    nuevo_monto = Decimal(formulario.cuota.data)
 
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
@@ -354,14 +355,21 @@ def nuevo_ejercicio():
         return redirect(url_for('administracion.panel'))
 
     anio = int(formulario.anio.data)
-    cuota = round(float(formulario.cuota.data), 2)
+    cuota = Decimal(formulario.cuota.data)
 
     if Ejercicio.query.filter_by(anio=anio).first():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
         return redirect(url_for('administracion.panel'))
 
     fecha_asamblea = formulario.fecha_asamblea.data
-    fecha_asamblea = date.fromisoformat(fecha_asamblea) if fecha_asamblea else None
+    if fecha_asamblea:
+        try:
+            fecha_asamblea = date.fromisoformat(fecha_asamblea)
+        except ValueError:
+            flash('La fecha de la asamblea no tiene un formato válido.', 'danger')
+            return redirect(url_for('administracion.panel'))
+    else:
+        fecha_asamblea = None
 
     nuevo, anterior = servicio_ejercicios.abrir_ejercicio(anio, cuota, fecha_asamblea)
 
