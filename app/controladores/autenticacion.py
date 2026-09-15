@@ -16,6 +16,8 @@ autenticacion_bp = Blueprint('autenticacion', __name__)
 def login():
     """Ingreso al área administrativa (RNF-01)"""
     if current_user.is_authenticated:
+        if current_user.rol == 'preceptoria':
+            return redirect(url_for('administracion.consulta_preceptoria'))
         return redirect(url_for('administracion.panel'))
 
     formulario = FormularioLogin()
@@ -43,6 +45,8 @@ def login():
             db.session.commit()
 
             flash('Bienvenido, {}.'.format(usuario.nombre or usuario.username), 'success')
+            if usuario.rol == 'preceptoria':
+                return redirect(url_for('administracion.consulta_preceptoria'))
             return redirect(url_for('administracion.panel'))
 
         # El mensaje es siempre el mismo, no aclaramos si falló el usuario o
