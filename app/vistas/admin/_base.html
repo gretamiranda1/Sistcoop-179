@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block navbar %}
+<header class="sc-admin-header">
+    <a class="sc-admin-marca" href="{{ url_for('administracion.panel') }}">
+        <i class="bi bi-bank2" aria-hidden="true"></i>
+        <span class="sc-admin-marca-texto">
+            <strong>SistCoop 179</strong>
+            <span>Panel de la Cooperadora</span>
+        </span>
+    </a>
+    <div class="sc-admin-usuario">
+        <span class="sc-admin-avatar" aria-hidden="true">{{ current_user.username[0]|upper }}</span>
+        <span class="d-none d-sm-inline">{{ current_user.username }}</span>
+        <a href="{{ url_for('autenticacion.logout') }}" class="sc-admin-salir">
+            <i class="bi bi-box-arrow-right" aria-hidden="true"></i> Cerrar sesión
+        </a>
+    </div>
+</header>
+
+<nav class="sc-admin-nav" aria-label="Secciones del panel">
+    {% set seccion = request.endpoint %}
+
+    <a href="{{ url_for('administracion.inicio') }}" class="sc-admin-nav-link"
+    {% if seccion == 'administracion.inicio' %}aria-current="page"{% endif %}>
+        <i class="bi bi-house-door" aria-hidden="true"></i> Inicio
+    </a>
+
+    <a href="{{ url_for('administracion.panel') }}" class="sc-admin-nav-link"
+       {% if seccion == 'administracion.panel' %}aria-current="page"{% endif %}>
+        <i class="bi bi-credit-card" aria-hidden="true"></i> Pagos
+    </a>
+
+    <div class="dropdown">
+        <button class="sc-admin-nav-link sc-admin-nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-file-earmark-text" aria-hidden="true"></i> Solicitudes
+        </button>
+        <ul class="dropdown-menu sc-admin-dropdown">
+            <li><a class="dropdown-item" href="#">Pendientes de revisión <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+            <li><a class="dropdown-item" href="#">Historial <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+        </ul>
+    </div>
+
+    <div class="dropdown">
+        <button class="sc-admin-nav-link sc-admin-nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-arrow-down-circle" aria-hidden="true"></i> Egresos
+        </button>
+        <ul class="dropdown-menu sc-admin-dropdown">
+            <li><a class="dropdown-item" href="#">Registrar egreso <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+            <li><a class="dropdown-item" href="#">Historial de egresos <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+        </ul>
+    </div>
+
+    <div class="dropdown">
+        <button class="sc-admin-nav-link sc-admin-nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bar-chart" aria-hidden="true"></i> Reportes
+        </button>
+        <ul class="dropdown-menu sc-admin-dropdown">
+            <li><a class="dropdown-item" href="#">Balance <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+        </ul>
+    </div>
+
+    <a href="{{ url_for('administracion.auditoria') }}" class="sc-admin-nav-link"
+       {% if seccion == 'administracion.auditoria' %}aria-current="page"{% endif %}>
+        <i class="bi bi-clock-history" aria-hidden="true"></i> Auditoría
+    </a>
+
+    <div class="dropdown">
+        <button class="sc-admin-nav-link sc-admin-nav-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-gear" aria-hidden="true"></i> Administración
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end sc-admin-dropdown">
+            <li><a class="dropdown-item" href="{{ url_for('administracion.configuracion') }}">Ejercicio y cuota</a></li>
+            <li><a class="dropdown-item" href="#">Usuarios <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+            <li><a class="dropdown-item" href="#">Carreras <span class="sc-etiqueta sc-etiqueta-espera">Próximamente</span></a></li>
+        </ul>
+    </div>
+</nav>
+{% endblock %}

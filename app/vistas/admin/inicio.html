@@ -1,0 +1,37 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Inicio — Panel de la Cooperadora — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Inicio</h1>
+    <p>Resumen de los fondos de la Cooperadora.</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h2>Fondos</h2>
+        <p class="sc-subtitulo">
+            Reflejan únicamente los pagos verificados. Lo cargado y sin verificar no suma acá.
+        </p>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            {% for fondo in fondos %}
+            {% if fondo.tipo == 'capital' or fondo.saldo|float != 0 %}
+            <div class="col-6 col-md-3">
+                <p class="sc-cifra-rotulo mb-1">{{ fondo.nombre }}</p>
+                <p class="sc-cifra mb-0">{{ fondo.saldo|pesos }}</p>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="sc-encabezado">
+    <p>Movimientos de la Cooperadora.</p>
+</div>
+
+{% endblock %}
