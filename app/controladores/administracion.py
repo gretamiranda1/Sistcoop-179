@@ -38,6 +38,7 @@ from app.servicios.solicitudes import ErrorDeResolucion
 from app.utilidades import validaciones
 from app.utilidades.archivos import ruta_comprobante
 from app.utilidades.peticion import ip_y_user_agent
+from decimal import Decimal
 
 administracion_bp = Blueprint('administracion', __name__)
 
@@ -336,7 +337,7 @@ def editar_cuota():
         flash(formulario.cuota.errors[0], 'danger')
         return redirect(url_for('administracion.panel'))
 
-    nuevo_monto = round(float(formulario.cuota.data), 2)
+    nuevo_monto = Decimal(formulario.cuota.data)
 
     anterior = ejercicio.cuota
     ejercicio.cuota = nuevo_monto
@@ -374,14 +375,21 @@ def nuevo_ejercicio():
         return redirect(url_for('administracion.panel'))
 
     anio = int(formulario.anio.data)
-    cuota = round(float(formulario.cuota.data), 2)
+    cuota = Decimal(formulario.cuota.data)
 
     if Ejercicio.query.filter_by(anio=anio).first():
         flash('Ya existe un ejercicio {}.'.format(anio), 'danger')
         return redirect(url_for('administracion.panel'))
 
     fecha_asamblea = formulario.fecha_asamblea.data
-    fecha_asamblea = date.fromisoformat(fecha_asamblea) if fecha_asamblea else None
+    if fecha_asamblea:
+        try:
+            fecha_asamblea = date.fromisoformat(fecha_asamblea)
+        except ValueError:
+            flash('La fecha de la asamblea no tiene un formato válido.', 'danger')
+            return redirect(url_for('administracion.panel'))
+    else:
+        fecha_asamblea = None
 
     nuevo, anterior = servicio_ejercicios.abrir_ejercicio(anio, cuota, fecha_asamblea)
 
@@ -416,7 +424,7 @@ def nuevo_ejercicio():
 # quien atiende el mostrador.
 
 @administracion_bp.route('/libretas')
-@requiere_rol('admin', 'asistente', 'preceptoria', mensaje='No tenés permisos para acceder a esa sección.')
+@requiere_rol('admin', 'asistente', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def gestion_libretas():
     dni = validaciones.limpiar_dni(request.args.get('dni', ''))
@@ -448,7 +456,7 @@ def gestion_libretas():
 
 
 @administracion_bp.route('/libretas/<int:saldo_id>/entregar', methods=['POST'])
-@requiere_rol('admin', 'asistente', 'preceptoria')
+@requiere_rol('admin', 'asistente')
 @login_required
 def entregar_libreta(saldo_id):
     saldo = SaldoAportante.query.get(saldo_id)
@@ -483,6 +491,36 @@ def entregar_libreta(saldo_id):
         flash('Libreta entregada.', 'success')
 
     return redirect(url_for('administracion.gestion_libretas', dni=saldo.aportante.dni))
+
+
+@administracion_bp.route('/consulta-preceptoria')
+@requiere_rol('admin', 'asistente', 'preceptoria', mensaje='No tenés permisos para acceder a esa sección.')
+@login_required
+def consulta_preceptoria():
+    """Consulta de sólo lectura del estado de pago de un aportante (RF-13).
+
+    A propósito no usa servicio_saldos.buscar_o_crear_saldo(): esa función
+    crea la fila de saldo si no existe y hace commit. Una pantalla de sólo
+    lectura no puede escribir nada en la base, ni para "crear en cero".
+    """
+    dni = validaciones.limpiar_dni(request.args.get('dni', ''))
+    aportante = None
+    saldo = None
+
+    if dni:
+        if not validaciones.validar_dni(dni):
+            flash('Ingresá un DNI válido, sin puntos.', 'warning')
+        else:
+            aportante = Aportante.get_by_dni(dni)
+            if aportante:
+                ejercicio = Ejercicio.get_ejercicio_vigente()
+                if ejercicio:
+                    saldo = SaldoAportante.get_por_aportante(aportante.id, ejercicio.id)
+            else:
+                flash('No hay ningún aportante registrado con ese DNI.', 'info')
+
+    return render_template('admin/consulta_preceptoria.html',
+                           dni=dni, aportante=aportante, saldo=saldo)
 
 
 # ============================================

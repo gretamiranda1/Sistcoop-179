@@ -21,6 +21,7 @@ from app.modelos.pagos_grupales import PagoGrupal, PagoGrupalDetalle
 from app.servicios import auditoria, fondos, pagos as servicio_pagos, saldos
 from app.servicios.pagos import ErrorDeCarga
 from app.utilidades import validaciones
+from decimal import Decimal, InvalidOperation
 
 MINIMO_PERSONAS = 2
 
@@ -137,31 +138,24 @@ def repartir_en_partes_iguales(personas, importe_total):
                            'completa. Si el aporte es para otro concepto, usá '
                            '"Aporte adicional".')
 
-    total_faltante = 0
+    total_faltante = Decimal('0')
     for persona in con_deuda:
         total_faltante = total_faltante + persona['falta']
 
     # No se reparte más de lo que falta entre todos
     a_repartir = min(importe_total, total_faltante)
-    centavos_a_repartir = round(a_repartir * 100)
-    cantidad = len(con_deuda)
-    centavos_base = centavos_a_repartir // cantidad
-    centavos_sobrantes = centavos_a_repartir % cantidad
+    parte = (a_repartir / len(con_deuda)).quantize(Decimal('0.01'))
 
-    asignado = 0.0
-    for indice, persona in enumerate(con_deuda):
-        centavos_persona = centavos_base + (1 if indice < centavos_sobrantes else 0)
-        parte = round(centavos_persona / 100, 2)
-        monto = min(parte, persona['falta'])
-        persona['monto_asignado'] = monto
-        asignado = round(asignado + monto, 2)
-
+    asignado = Decimal('0')
     for persona in personas:
-        if persona['falta'] <= 0:
-            persona['monto_asignado'] = 0.0
+        monto = Decimal('0')
+        if persona['falta'] > 0:
+            monto = min(parte, persona['falta'])
+        persona['monto_asignado'] = monto
+        asignado = asignado + monto
 
-    excedente = round(importe_total - asignado, 2)
-    return personas, max(excedente, 0.0)
+    excedente = importe_total - asignado
+    return personas, max(excedente, Decimal('0'))
 
 
 def repartir_a_mano(personas, importe_total, montos):
@@ -173,36 +167,35 @@ def repartir_a_mano(personas, importe_total, montos):
     declarados = []
     for monto in montos:
         try:
-            declarados.append(round(float(monto), 2))
-        except (ValueError, TypeError):
-            declarados.append(0.0)
+            declarados.append(Decimal(str(monto)).quantize(Decimal('0.01')))
+        except (InvalidOperation, TypeError):
+            declarados.append(Decimal('0.00'))
 
     for monto in declarados:
         if monto < 0:
             raise ErrorDeCarga('Los montos asignados no pueden ser negativos.')
 
-    suma = round(sum(declarados), 2)
-    if suma > round(importe_total, 2) + 0.01:
+    suma = sum(declarados)
+    if suma > importe_total + Decimal('0.01'):
         raise ErrorDeCarga('Estás repartiendo ${:,.2f} pero transferiste ${:,.2f}. '
                            'La suma no puede superar el importe transferido.'.format(
                                suma, importe_total))
 
-    asignado = 0.0
+    asignado = Decimal('0')
     for i in range(len(personas)):
         if i < len(declarados):
             monto = min(declarados[i], personas[i]['falta'])
         else:
-            monto = 0.0
+            monto = Decimal('0')
         personas[i]['monto_asignado'] = monto
-        asignado = round(asignado + monto, 2)
+        asignado = asignado + monto
 
     if asignado == 0:
         raise ErrorDeCarga('Tenés que asignarle un monto a por lo menos una persona.')
 
-    excedente = round(importe_total - asignado, 2)
-    return personas, max(excedente, 0.0)
-
-
+    excedente = importe_total - asignado
+    return personas, max(excedente, Decimal('0'))
+    
 # ============================================
 # ALTA DEL PAGO GRUPAL
 # ============================================
@@ -219,11 +212,9 @@ def procesar_pago_grupal(data, ip=None, user_agent=None):
         errores.append(mensaje)
         importe_total = 0
     else:
-        importe_total = round(float(data['importe_total']), 2)
-
-    if not data.get('fecha'):
-        errores.append('La fecha de la transferencia es obligatoria.')
-    else:
+        importe_total = Decimal(str(data['importe_total'])).quantize(Decimal('0.01'))
+        
+    if data.get('fecha'):
         fecha_ok, mensaje = validaciones.validar_fecha_transferencia(data['fecha'])
         if not fecha_ok:
             errores.append(mensaje)
@@ -396,9 +387,24 @@ def verificar_pago_grupal(pago_grupal_id, usuario_id, ip=None, user_agent=None):
 
     # Pasamos la consulta a lista antes del bucle: verificar_pago() hace su
     # propio commit, y no conviene recorrer una consulta mientras se guarda.
-    for pago in grupal.pagos.all():
-        if pago.estado == 'pendiente':
-            servicio_pagos.verificar_pago(pago.id, usuario_id)
+    try:
+        for pago in grupal.pagos.all():
+            if pago.estado == 'pendiente':
+                servicio_pagos.verificar_pago(
+                    pago.id,
+                    usuario_id,
+                    commit=False
+                )
+
+        auditoria.registrar(
+            ...
+        )
+
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        raise
 
     auditoria.registrar(
         usuario=str(usuario_id),
@@ -415,8 +421,9 @@ def verificar_pago_grupal(pago_grupal_id, usuario_id, ip=None, user_agent=None):
     return grupal
 
 
-def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, ip=None, user_agent=None):
-    """Rechaza la transferencia y todos los pagos que salieron de ella."""
+def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo,
+                         ip=None, user_agent=None):
+
     grupal = PagoGrupal.query.get(pago_grupal_id)
     if not grupal:
         raise ErrorDeCarga('La transferencia grupal no existe.')
@@ -425,26 +432,40 @@ def rechazar_pago_grupal(pago_grupal_id, usuario_id, motivo, ip=None, user_agent
     if not motivo:
         raise ErrorDeCarga('Hay que indicar el motivo del rechazo.')
 
-    grupal.estado = 'rechazado'
-    db.session.add(grupal)
+    try:
+        grupal.estado = 'rechazado'
+        db.session.add(grupal)
 
-    for detalle in grupal.detalles.all():
-        detalle.estado = 'rechazado'
-        db.session.add(detalle)
+        for detalle in grupal.detalles.all():
+            detalle.estado = 'rechazado'
+            db.session.add(detalle)
 
-    for pago in grupal.pagos.all():
-        if pago.estado in ('pendiente', 'verificado'):
-            servicio_pagos.rechazar_pago(pago.id, usuario_id, motivo)
+        for pago in grupal.pagos.all():
+            if pago.estado in ('pendiente', 'verificado'):
+                servicio_pagos.rechazar_pago(
+                    pago.id,
+                    usuario_id,
+                    motivo,
+                    commit=False
+                )
 
-    auditoria.registrar(
-        usuario=str(usuario_id),
-        accion='rechazar_pago_grupal',
-        tabla='pagos_grupales',
-        registro_id=grupal.id,
-        detalle={'codigo_seguimiento': grupal.codigo_seguimiento, 'motivo': motivo},
-        ip=ip,
-        user_agent=user_agent
-    )
+        auditoria.registrar(
+            usuario=str(usuario_id),
+            accion='rechazar_pago_grupal',
+            tabla='pagos_grupales',
+            registro_id=grupal.id,
+            detalle={
+                'codigo_seguimiento': grupal.codigo_seguimiento,
+                'motivo': motivo
+            },
+            ip=ip,
+            user_agent=user_agent
+        )
 
-    db.session.commit()
+        db.session.commit()
+
+    except Exception:
+        db.session.rollback()
+        raise
+
     return grupal

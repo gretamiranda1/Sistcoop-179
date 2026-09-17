@@ -26,7 +26,7 @@ class Config:
     # la cuenta bancaria de la persona. Se sirven desde /admin/comprobante/,
     # que pide sesión iniciada.
     UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', os.path.join(RAIZ, 'instance', 'comprobantes'))
-    MAX_CONTENT_LENGTH = TAMANIO_MAXIMO_COMPROBANTE
+    MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', TAMANIO_MAXIMO_COMPROBANTE))
 
     # Cookies de sesión
     SESSION_COOKIE_HTTPONLY = True

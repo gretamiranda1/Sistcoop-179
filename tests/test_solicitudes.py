@@ -61,3 +61,26 @@ def test_panel_muestra_botones_de_accion(client, db, admin, iniciar_sesion):
 
     assert resp.status_code == 200
     assert 'aprobar-solicitud-' in resp.get_data(as_text=True)
+
+
+def test_solicitud_de_fondos_de_punta_a_punta(client, db, carrera):
+    resp = client.post('/aportante/solicitud', data={
+        'tipo_solicitud': 'fondos',
+        'responsable': 'Profe Test',
+        'contacto': 'profe@test.com',
+        'carrera_id': str(carrera.id),
+        'curso': '3A',
+        'tipo': 'fondos',
+        'importe': '15000',
+        'concepto': 'Insumos de taller',
+        'fecha_estimada': '',
+        'justificacion': 'Se necesitan materiales para el taller de fin de año.',
+    }, follow_redirects=False)
+
+    assert resp.status_code == 302
+    assert '/aportante/solicitud/' in resp.headers['Location']
+
+    solicitud = SolicitudFondo.query.first()
+    assert solicitud is not None
+    assert solicitud.estado == 'pendiente'
+    assert solicitud.codigo_seguimiento.startswith('SF-')

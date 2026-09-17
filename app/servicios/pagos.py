@@ -357,7 +357,7 @@ def crear_pago_publico(data, ip=None, user_agent=None):
 # ============================================
 
 def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
-                   ip=None, user_agent=None):
+                   ip=None, user_agent=None, commit=True):
     """La Cooperadora confirma que el dinero entró (RF-03).
 
     Este es el ÚNICO momento en que un pago suma. Pasan tres cosas, en este
@@ -368,6 +368,8 @@ def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
         raise ErrorDeCarga('El pago no existe.')
     if pago.estado == 'verificado':
         raise ErrorDeCarga('El pago ya está verificado.')
+    if pago.estado == 'rechazado':
+        raise ErrorDeCarga('No se puede verificar un pago rechazado.')
     if pago.estado == 'anulado':
         raise ErrorDeCarga('No se puede verificar un pago anulado.')
 
@@ -405,12 +407,13 @@ def verificar_pago(pago_id, usuario_id, numero_recibo=None, serie_recibo=None,
         ip=ip,
         user_agent=user_agent
     )
+    if commit:
+        db.session.commit()
 
-    db.session.commit()
     return pago
 
 
-def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None):
+def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None, commit=True):
     """El pago no coincide con el extracto del banco.
 
     Si ya estaba verificado hay que dar marcha atrás con el movimiento del
@@ -435,7 +438,7 @@ def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None):
     if estaba_verificado:
         fondos.registrar_movimiento(
             pago.fondo,
-            monto=-float(pago.importe),
+            monto=-pago.importe,
             motivo='Reversión por rechazo del pago ' + pago.codigo_seguimiento
         )
 
@@ -451,7 +454,9 @@ def rechazar_pago(pago_id, usuario_id, motivo, ip=None, user_agent=None):
         user_agent=user_agent
     )
 
-    db.session.commit()
+    if commit:
+        db.session.commit()
+        
     return pago
 
 

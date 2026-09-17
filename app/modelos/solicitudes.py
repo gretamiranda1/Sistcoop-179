@@ -32,7 +32,7 @@ class SolicitudFondo(db.Model):
 
     responsable = db.Column(db.String(120), nullable=False)
     contacto = db.Column(db.String(120), nullable=False)
-    carrera_id = db.Column(db.Integer, db.ForeignKey('carreras.id'))
+    carrera_id = db.Column(db.Integer, db.ForeignKey('carreras.id'), nullable=False)
     curso = db.Column(db.String(50))
 
     tipo = db.Column(db.String(20), nullable=False)  # fondos, evento, viaje

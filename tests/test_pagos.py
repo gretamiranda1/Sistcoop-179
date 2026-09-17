@@ -14,7 +14,7 @@ def test_pago_nace_pendiente_y_no_mueve_ningun_saldo(db, ejercicio, fondo_capita
     saldo_fondo_inicial = float(fondo_capital.saldo)
 
     pago, saldo = servicio_pagos.crear_pago_de_cuota(
-        datos_de_cuota('31111111', 15000, 'OPER0001', 'huella-0001'))
+        datos_de_cuota('31111111', 15000, 'OPTEST0001', 'huella-0001'))
 
     assert pago.estado == 'pendiente'
     assert pago.codigo_seguimiento.startswith('SC-')
@@ -28,7 +28,7 @@ def test_verificar_un_pago_impacta_el_saldo_del_aportante(
     saldo_fondo_inicial = float(fondo_capital.saldo)
 
     pago, saldo = servicio_pagos.crear_pago_de_cuota(
-        datos_de_cuota('31111112', 15000, 'OPER0002', 'huella-0002'))
+        datos_de_cuota('31111112', 15000, 'OPTEST0002', 'huella-0002'))
 
     servicio_pagos.verificar_pago(pago.id, admin.id, numero_recibo='0001')
 
@@ -53,8 +53,19 @@ def test_codigo_de_transaccion_repetido_se_rechaza(db, ejercicio, fondo_capital,
 
 def test_comprobante_con_el_mismo_hash_se_rechaza(db, ejercicio, fondo_capital, datos_de_cuota):
     servicio_pagos.crear_pago_de_cuota(
-        datos_de_cuota('34222222', 30000, 'OPER0003', 'huella-repetida'))
+        datos_de_cuota('34222222', 30000, 'OPTEST0003', 'huella-repetida'))
 
     with pytest.raises(ErrorDeCarga):
         servicio_pagos.crear_pago_de_cuota(
-            datos_de_cuota('35222222', 30000, 'OPER0004', 'huella-repetida'))
+            datos_de_cuota('35222222', 30000, 'OPTEST0004', 'huella-repetida'))
+
+
+def test_no_se_puede_reverificar_un_pago_rechazado(
+        db, ejercicio, fondo_capital, admin, datos_de_cuota):
+    pago, _ = servicio_pagos.crear_pago_de_cuota(
+        datos_de_cuota('36222222', 15000, 'OPTEST0005', 'huella-0005'))
+
+    servicio_pagos.rechazar_pago(pago.id, admin.id, 'no figura en el extracto')
+
+    with pytest.raises(ErrorDeCarga):
+        servicio_pagos.verificar_pago(pago.id, admin.id)
