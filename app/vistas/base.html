@@ -30,6 +30,7 @@
 
 <a class="sc-saltar" href="#contenido">Saltar al contenido principal</a>
 
+{% block navbar %}
 <nav class="navbar navbar-expand-lg sc-navbar" aria-label="Navegación principal">
     <div class="container-fluid" style="max-width: 1140px;">
         <a class="navbar-brand" href="{{ url_for('aportantes.inicio') }}">
@@ -100,6 +101,7 @@
         </div>
     </div>
 </nav>
+{% endblock %}
 
 <main class="sc-contenido" id="contenido">
 

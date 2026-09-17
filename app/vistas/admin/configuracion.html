@@ -1,0 +1,178 @@
+{% extends "admin/_base.html" %}
+
+{% block title %}Administración — Panel de la Cooperadora — SistCoop 179{% endblock %}
+
+{% block content %}
+
+<div class="sc-encabezado">
+    <h1>Administración</h1>
+</div>
+
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-ejercicio" type="button" role="tab">
+            Ejercicio y cuota
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-usuarios" type="button" role="tab">
+            Usuarios
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-carreras" type="button" role="tab">
+            Carreras
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content">
+
+    {# ---------------- Ejercicio y cuota ---------------- #}
+    <div class="tab-pane fade show active" id="tab-ejercicio" role="tabpanel">
+
+        {% if ejercicio %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h2>Ejercicio vigente: {{ ejercicio.anio }}</h2>
+            </div>
+            <div class="card-body">
+                <table class="table sc-tabla mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Concepto</th>
+                            <th scope="col">Importe</th>
+                            <th scope="col">Asamblea</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Cuota de cooperadora — anual</td>
+                            <td class="sc-importe">{{ ejercicio.cuota|pesos }}</td>
+                            <td>{{ ejercicio.fecha_asamblea.strftime('%d/%m/%Y') if ejercicio.fecha_asamblea else '—' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="sc-ayuda mt-2 mb-0">Se fija en la asamblea anual y no se modifica durante el ejercicio.</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <h3 class="sc-cifra-rotulo">Cambiar la cuota vigente</h3>
+
+                        {% if puede_editar_cuota %}
+                        <form method="POST" action="{{ url_for('administracion.editar_cuota') }}" class="row g-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="col-8">
+                                <label for="cuota" class="sc-solo-lectores">Nuevo importe de la cuota</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="cuota" name="cuota"
+                                           value="{{ ejercicio.cuota }}" step="0.01" min="0.01" required>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <button type="submit" class="btn btn-primary w-100">Guardar</button>
+                            </div>
+                        </form>
+                        <p class="sc-ayuda mt-2">
+                            Sólo para enmendar un error de carga. El importe se fija en asamblea
+                            y deja de poder modificarse en cuanto se registre el primer pago.
+                        </p>
+                        {% else %}
+                        <div class="sc-aviso sc-aviso-atencion">
+                            <p class="mb-0">
+                                <i class="bi bi-lock" aria-hidden="true"></i> {{ motivo_cuota }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <h3 class="sc-cifra-rotulo">Abrir el próximo ejercicio</h3>
+                        <form method="POST" action="{{ url_for('administracion.nuevo_ejercicio') }}" class="row g-2">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="col-4">
+                                <label for="anio" class="form-label">Año</label>
+                                <input type="number" class="form-control" id="anio" name="anio"
+                                       min="2020" max="2100" required>
+                            </div>
+                            <div class="col-8">
+                                <label for="cuota-nueva" class="form-label">Cuota fijada en asamblea</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" id="cuota-nueva" name="cuota"
+                                           step="0.01" min="0.01" required>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label for="fecha-asamblea" class="form-label">Fecha de la asamblea</label>
+                                <div class="input-group">
+                                    <input type="date" class="form-control" id="fecha-asamblea" name="fecha_asamblea">
+                                    <button type="submit" class="btn btn-outline-primary">Abrir</button>
+                                </div>
+                            </div>
+                        </form>
+                        <p class="sc-ayuda mt-2">Al abrir uno nuevo, el ejercicio actual queda cerrado.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header"><h2>Histórico</h2></div>
+            <div class="table-responsive">
+                <table class="table sc-tabla mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Ejercicio</th>
+                            <th scope="col">Cuota anual</th>
+                            <th scope="col">Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in ejercicios %}
+                        <tr>
+                            <td>{{ e.anio }}</td>
+                            <td class="sc-importe">{{ e.cuota|pesos }}</td>
+                            <td>
+                                {% if not e.cerrado %}
+                                <span class="badge text-bg-success">Vigente</span>
+                                {% else %}
+                                <span class="badge text-bg-secondary">Cerrado</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {# ---------------- Usuarios (próximamente) ---------------- #}
+    <div class="tab-pane fade" id="tab-usuarios" role="tabpanel">
+        <div class="card">
+            <div class="card-body sc-vacio">
+                <i class="bi bi-people sc-vacio-icono" aria-hidden="true"></i>
+                <p class="mb-0">Gestión de usuarios — próximamente.</p>
+            </div>
+        </div>
+    </div>
+
+    {# ---------------- Carreras (próximamente) ---------------- #}
+    <div class="tab-pane fade" id="tab-carreras" role="tabpanel">
+        <div class="card">
+            <div class="card-body sc-vacio">
+                <i class="bi bi-mortarboard sc-vacio-icono" aria-hidden="true"></i>
+                <p class="mb-0">Gestión de carreras — próximamente.</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

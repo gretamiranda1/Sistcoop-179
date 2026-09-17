@@ -47,16 +47,18 @@ administracion_bp = Blueprint('administracion', __name__)
 # PANEL
 # ============================================
 
+@administracion_bp.route('/inicio')
+@requiere_rol('admin', 'asistente', mensaje='No tenés permisos para acceder a esa sección.')
+@login_required
+def inicio():
+    return render_template('admin/inicio.html', fondos=Fondo.get_activos())
+
+
 @administracion_bp.route('/')
 @requiere_rol('admin', 'asistente', mensaje='No tenés permisos para acceder a esa sección.')
 @login_required
 def panel():
     ejercicio = Ejercicio.get_ejercicio_vigente()
-    if ejercicio:
-        puede_editar_cuota, motivo_cuota = ejercicio.admite_cambio_de_cuota()
-    else:
-        puede_editar_cuota = False
-        motivo_cuota = 'No hay ejercicio vigente.'
 
     ejercicios = Ejercicio.query.order_by(Ejercicio.anio.desc()).all()
     ejercicio_id_param = request.args.get('ejercicio_id', type=int)
@@ -86,8 +88,6 @@ def panel():
         ejercicio=ejercicio,
         ejercicios=ejercicios,
         ejercicio_seleccionado=ejercicio_seleccionado,
-        puede_editar_cuota=puede_editar_cuota,
-        motivo_cuota=motivo_cuota,
         pendientes=pendientes,
         grupales_pendientes=grupales_pendientes,
         solicitudes=solicitudes,
@@ -290,6 +290,26 @@ def ver_comprobante_grupal(pago_id):
 # ============================================
 # EJERCICIO Y CUOTA
 # ============================================
+@administracion_bp.route('/configuracion')
+@requiere_rol('admin', mensaje='No tenés permisos para acceder a esa sección.')
+@login_required
+def configuracion():
+    ejercicio = Ejercicio.get_ejercicio_vigente()
+    if ejercicio:
+        puede_editar_cuota, motivo_cuota = ejercicio.admite_cambio_de_cuota()
+    else:
+        puede_editar_cuota = False
+        motivo_cuota = 'No hay ejercicio vigente.'
+
+    ejercicios = Ejercicio.query.order_by(Ejercicio.anio.desc()).all()
+
+    return render_template(
+        'admin/configuracion.html',
+        ejercicio=ejercicio,
+        ejercicios=ejercicios,
+        puede_editar_cuota=puede_editar_cuota,
+        motivo_cuota=motivo_cuota
+    )
 
 @administracion_bp.route('/editar-cuota', methods=['POST'])
 @requiere_rol('admin')
